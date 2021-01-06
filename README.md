@@ -8,4 +8,4 @@ This plugin can allows you to include templates in DokuWiki pages. Note: the wor
 AlloyDome
 
 ## Acknowledgement
-This plugin is based on “wst” plugin by [Vitalie Ciubotaru](vitalie@ciubotaru.tk).
+This plugin is based on [“wst” plugin](https://www.dokuwiki.org/plugin:wst) by Vitalie Ciubotaru.
