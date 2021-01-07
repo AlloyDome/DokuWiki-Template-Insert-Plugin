@@ -1,0 +1,7 @@
+base   tplt
+author AlloyDome
+email  
+date   2020-12-31
+name   TemPLaTe plugin
+desc   Templates
+url    
