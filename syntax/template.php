@@ -64,6 +64,9 @@ class syntax_plugin_tplt_template extends DokuWiki_Syntax_Plugin {
 	 * handle
      * 对已匹配的片段进行处理 · Handle matches of the tplt plugin
 	 * 
+	 * @version	1.1 (210303)
+	 * @since	1.0 (210105)
+	 * 
 	 * @author	1. Vitalie Ciubotaru <vitalie@ciubotaru.tk>
 	 * 			2. A135
      *
@@ -89,7 +92,10 @@ class syntax_plugin_tplt_template extends DokuWiki_Syntax_Plugin {
 		if (!$this->recursionCheck($templateName))	// 递归检查 · recursion check
 			return $this->getLang('selfCallingBegin') . $templateName . $this->getLang('selfCallingEnd');
 		
-		$dump = $dump[1];	// 各参数 · All arguments
+		$dump = addcslashes($dump[1], '\\');	// 各参数 · All arguments
+			// 注：传入的各参数值需要在反斜杠前再加一个反斜杠，以防止发生转义
+			//  ·
+			// Note: Need to add backslash before backslashes in incoming argument values to prevent escaping
 		$template_arguments = array();
 		if ($dump)
 		{
@@ -116,6 +122,9 @@ class syntax_plugin_tplt_template extends DokuWiki_Syntax_Plugin {
     /**
 	 * render
      * 输出 XHTML 或元数据的渲染器 · Render xhtml output or metadata
+	 * 
+	 * @version	1.0 (210105)
+	 * @since	1.0 (210105)
 	 * 
 	 * @author	1. Vitalie Ciubotaru <vitalie@ciubotaru.tk>
 	 * 			2. A135
@@ -152,6 +161,9 @@ class syntax_plugin_tplt_template extends DokuWiki_Syntax_Plugin {
 	 * By default, a page from namespace specified in "$conf['namespace']" will be loaded.
 	 * To override this, prepend a colon to "$name".
 	 * 
+	 * @version	1.0 (210105)
+	 * @since	1.0 (210105)
+	 * 
 	 * @author	Vitalie Ciubotaru <vitalie@ciubotaru.tk>
 	 * 
 	 * @param	string	$name	模板页面名 · Name of template page
@@ -172,7 +184,11 @@ class syntax_plugin_tplt_template extends DokuWiki_Syntax_Plugin {
 	 * replaceArgs
 	 * 替换模板内的参数 · Replace arguments in template
 	 * 
+	 * @version	1.1 (210303)
+	 * @since	1.0 (210105)
+	 * 
 	 * @author	1. Vitalie Ciubotaru <vitalie@ciubotaru.tk>
+	 * 			2. A135
 	 * 
 	 * @param	string	$template_text	从 “get_template()” 函数返回的模板代码 · Data from "get_template()" function
 	 * @return	string					将参数替换后的模板代码 · Argument replaced data
@@ -190,7 +206,7 @@ class syntax_plugin_tplt_template extends DokuWiki_Syntax_Plugin {
 		preg_match_all('/\{\{\{[^\{\}#]+?\s*?=\s*?(?:(?:[^\}]*?\{.*?\}\})|.*?)*?\}\}\}/', $template_text, $argsWithDefaultValue);
 		foreach ($argsWithDefaultValue[0] as $value)
 		{
-			$template_text = str_replace($value, trim(substr($value, strpos($value, "=") + 1, -3)), $template_text);
+			$template_text = str_replace($value, trim(substr($value, strpos($value, '=') + 1, -3)), $template_text);
 		}
 		unset($argsWithDefaultValue);
 
@@ -203,7 +219,7 @@ class syntax_plugin_tplt_template extends DokuWiki_Syntax_Plugin {
 			$switchArg = $dump[0];
 			if (strpos($switchArg, '=') !== false)
 			{
-				$tmp = explode("=", $switchArg, 2);
+				$tmp = explode('=', $switchArg, 2);
 				$switchArg = trim($tmp[0]);
 				$default = trim($tmp[1]);
 			}
@@ -222,7 +238,7 @@ class syntax_plugin_tplt_template extends DokuWiki_Syntax_Plugin {
 				{
 					if (strpos($eachCase, ':') !== false)
 					{
-						$tmp = explode(":", $eachCase, 2);
+						$tmp = explode(':', $eachCase, 2);
 						if (!$multiToOne)
 						{
 							$cases[trim($tmp[0])] = trim($tmp[1]);
@@ -276,6 +292,9 @@ class syntax_plugin_tplt_template extends DokuWiki_Syntax_Plugin {
 	 *  · 
 	 * Remove "<p>...</p>" tags at both sides if there is only a single paragraph to adjust for inline mode
 	 * 
+	 * @version	1.0 (210105)
+	 * @since	1.0 (210105)
+	 * 
 	 * @author	A135
 	 * 
 	 * @param	string	rawRandered		渲染生成的原始 XHTML 内容 · Raw XHTML code by renderer
@@ -317,6 +336,9 @@ class syntax_plugin_tplt_template extends DokuWiki_Syntax_Plugin {
 	 * 检查模板是否直接或间接地调用了自身，来防止无限递归
 	 *  · 
 	 * Check whether templates call themselves directly or indirectly to prevent endless recusion
+	 * 
+	 * @version	1.0 (210105)
+	 * @since	1.0 (210105)
 	 * 
 	 * @author	A135
 	 * 
@@ -370,6 +392,9 @@ class syntax_plugin_tplt_template extends DokuWiki_Syntax_Plugin {
 	/** 
 	 * getTemplateName
 	 * 获得模板的名称 · Get template name
+	 * 
+	 * @version	1.0 (210105)
+	 * @since	1.0 (210105)
 	 * 
 	 * @author	A135
 	 * 
