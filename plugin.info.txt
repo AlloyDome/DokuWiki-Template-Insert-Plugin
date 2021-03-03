@@ -1,7 +1,7 @@
 base   tplt
 author AlloyDome
 email  
-date   2020-12-31
-name   TemPLaTe plugin
-desc   Templates
-url    
+date   2021-3-3
+name   TPLT plugin
+desc   To insert template pages in other pages.
+url    https://github.com/AlloyDome/DokuWiki-Template-Insert-Plugin
