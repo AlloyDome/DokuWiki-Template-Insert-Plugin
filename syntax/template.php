@@ -6,7 +6,7 @@
  * @author	1. Vitalie Ciubotaru <vitalie@ciubotaru.tk>
  * 			2. A135
  * 
- * @version 1.0 (210105)
+ * @version 1.1 (210303)
  */
 
 // 必须在 Dokuwiki 下运行 · Must be run within Dokuwiki
