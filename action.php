@@ -19,9 +19,85 @@ if(!defined('DOKU_INC'))
 	die();	// 必须在 Dokuwiki 下运行 · Must be run within Dokuwiki
 
 class action_plugin_tplt extends DokuWiki_Action_Plugin {
+
+	const PATTERNS_FOR_RAWWIKI = array(
+		array(
+			'name' => 'nowiki',
+			'isCouple' => true,
+			'allowSelfNest' => false,
+			'allowEnterFrom' => array('tplt'),
+			'patterns' => array(
+				array('start' => '%%', 							'end' => '%%', 			'isPcre' => false),
+				array('start' => '<nowiki>', 					'end' => '</nowiki>', 	'isPcre' => false),
+				array('start' => '<html>', 						'end' => '</html>', 	'isPcre' => false),
+				array('start' => '<HTML>', 						'end' => '</HTML>', 	'isPcre' => false),
+				array('start' => '<php>', 						'end' => '</php>', 		'isPcre' => false),
+				array('start' => '<PHP>', 						'end' => '</PHP>', 		'isPcre' => false),
+				array('start' => '/<code\b(?=.*<\/code>)/', 	'end' => '/<\/code>/', 	'isPcre' => true),
+				array('start' => '/<file\b(?=.*<\/file>)/', 	'end' => '/<\/file>/', 	'isPcre' => true),
+			)
+		),
+		array(
+			'name' => 'tplt',
+			'isCouple' => true,
+			'allowSelfNest' => true,
+			'allowEnterFrom' => array(),
+			'patterns' => array(
+				array('start' => '[|', 		'end' => '|]', 				'isPcre' => false)
+			)
+		),
+		array(
+			'name' => 'arg',
+			'isCouple' => true,
+			'allowSelfNest' => false,
+			'allowEnterFrom' => array(),
+			'patterns' => array(
+				array('start' => '{{{', 		'end' => '}}}', 		'isPcre' => false)
+			)
+		),
+	);
+
+	const PATTERNS_FOR_TPLT_SYNTAX = array(
+		array(
+			'name' => 'nowiki',
+			'isCouple' => true,
+			'allowSelfNest' => false,
+			'allowEnterFrom' => array('tplt'),
+			'patterns' => array(
+				array('start' => '%%', 							'end' => '%%', 			'isPcre' => false),
+				array('start' => '<nowiki>', 					'end' => '</nowiki>', 	'isPcre' => false),
+				array('start' => '<html>', 						'end' => '</html>', 	'isPcre' => false),
+				array('start' => '<HTML>', 						'end' => '</HTML>', 	'isPcre' => false),
+				array('start' => '<php>', 						'end' => '</php>', 		'isPcre' => false),
+				array('start' => '<PHP>', 						'end' => '</PHP>', 		'isPcre' => false),
+				array('start' => '/<code\b(?=.*<\/code>)/', 	'end' => '/<\/code>/', 	'isPcre' => true),
+				array('start' => '/<file\b(?=.*<\/file>)/', 	'end' => '/<\/file>/', 	'isPcre' => true),
+			)
+		),
+		array(
+			'name' => 'delimiter',
+			'isCouple' => false,
+			'allowEnterFrom' => array(),
+			'patterns' => array(
+				array('selfClosing' => '|', 'isPcre' => false)
+			)
+		),
+		array(
+			'name' => 'tplt',
+			'isCouple' => true,
+			'allowSelfNest' => true,
+			'allowEnterFrom' => array(),
+			'patterns' => array(
+				array('start' => '[|', 		'end' => '|]', 				'isPcre' => false)
+			)
+		)
+	);
+
+	// ----------------------------------------------------------------
+
 	/**
 	 * register(Doku_Event_Handler $controller)
-	 * 在 DokuWiki 事件控制器种注册插件相关的处理器 · Register its handlers with the DokuWiki's event controller
+	 * 在 DokuWiki 事件控制器中注册插件相关的处理器 · Register its handlers with the DokuWiki's event controller
 	 */
 	public function register(Doku_Event_Handler $controller) {
 		$controller->register_hook('PARSER_WIKITEXT_PREPROCESS', 'AFTER', $this, 'tpltTextReplace');
@@ -55,6 +131,8 @@ class action_plugin_tplt extends DokuWiki_Action_Plugin {
 		$event->data = $text;
 	}
 
+	// ----------------------------------------------------------------
+
 	/**
 	 * tpltMainHandler($text)
 	 * 主处理函数
@@ -65,16 +143,89 @@ class action_plugin_tplt extends DokuWiki_Action_Plugin {
 	 * @author	AlloyDome
 	 * 
 	 */
-	private function tpltMainHandler($text, $imcomingArgs = array(), &$pageStack = array()) {
-		$instructions = $this->tpltParser($text);
-		$this->replaceArgs($instructions, $imcomingArgs);
-		$this->replaceTplts($instructions, $pageStack);	// 注：可以考虑将“[| ... |]”里面的“{{{ ... }}}”参数（当前页面的传入参数）在这个函数里面做替换，而不是在 replaceArgs() 函数里面
+	private function tpltMainHandler($text, $incomingArgs = array(), &$pageStack = array()) {
+		if ($this->getConf('maxNestLevel') != 0 && count($pageStack) - 1 > $this->getConf('maxNestLevel')) {
+		// 注：count($pageStack) 减 1 是因为根页面虽然在 $pageStack 当中，但不算进嵌套
+			return $text;	// 如果超过最大嵌套层数，则返回文本本身
+		}
+
+		$instructions = $this->tpltParser($text, 'rawWiki');
+		$this->replaceArgs($instructions, $incomingArgs);
+		$this->replaceTplts($instructions, $incomingArgs, $pageStack);	// 注：可以考虑将“[| ... |]”里面的“{{{ ... }}}”参数（当前页面的传入参数）在这个函数里面做替换，而不是在 replaceArgs() 函数里面
 		return $this->textMerge($instructions);
 	}
 
+	private function replaceArgs(&$instructions, $incomingArgs) {
+		foreach ($instructions as $key => $instruction) {
+			if ($instruction['type'] == 'arg' && $instruction['startOrEnd'] = 'end') {
+				$argNameAndDefaultValue = $instructions[$key - 1]['text'];
+				if (strpos($argNameAndDefaultValue, '=') !== false) {
+					$argNameAndDefaultValue = explode('=', $argNameAndDefaultValue, 2);
+					$argName = trim($argNameAndDefaultValue[0]);
+					$defaultValue = trim($argNameAndDefaultValue[1]);
+				} else {
+					$argName = $argNameAndDefaultValue;
+					$defaultValue = false;
+				}
+				if ($instructions[$key - 2]['text'] == '{{{') {
+					if (($this->arrayKeyExists($argName, $incomingArgs)) || $defaultValue !== false) {
+						if ($this->arrayKeyExists($argName, $incomingArgs)) {
+							$instructions[$key - 1]['text'] = $incomingArgs[$argName];
+						} elseif ($defaultValue !== false && !$this->arrayKeyExists($argName, $incomingArgs)) {
+							$instructions[$key - 1]['text'] = $defaultValue;
+						}
+						unset($instructions[$key]);
+						unset($instructions[$key - 2]);
+					}				
+				}
+			}
+		}
+		$instructions = array_values($instructions);
+	}
+
+	private function replaceTplts(&$instructions, $incomingArgs, &$pageStack = array()) {
+		$nestLevel = 0;
+		foreach ($instructions as $key => $instruction) {
+			if ($instruction['type'] == 'tplt') {
+				if ($instruction['startOrEnd'] == 'start') {
+					$nestLevel += 1;
+					if ($nestLevel == 1) {
+						$startOrderNo = $key;
+					}
+				} elseif ($instruction['startOrEnd'] == 'end') {
+					$nestLevel -= 1;
+					if ($nestLevel == 0) {
+						$matechedTpltNameAndArgs = '';
+						for ($i = $startOrderNo + 1; $i <= $key - 1; $i++) {
+							$matechedTpltNameAndArgs .= $instructions[$i]['text'];
+						}
+						$tpltText = $this->tpltRendener($matechedTpltNameAndArgs, $incomingArgs, $pageStack);
+						for ($i = $startOrderNo; $i <= $key - 1; $i++) {
+							unset($instructions[$i]);
+						}
+						unset($instructions[$key]['startOrEnd']);
+						$instructions[$key]['type'] = 'plainText';
+						$instructions[$key]['text'] = $tpltText;
+					}
+				}
+			}
+		}
+		$instructions = array_values($instructions);
+	}
+
+	private function textMerge($instructions) {
+		$text = '';
+		foreach ($instructions as $instruction) {
+			$text .= $instruction['text'];
+		}
+		return trim($text); // ?
+	}
+
+	// ----------------------------------------------------------------
+
 	/**
-	 * tpltParser($text)
-	 * 原始 Wiki 代码解析器 · Parser of the raw Wiki code
+	 * tpltParser($text, $parserMode)
+	 * 代码解析器 · Parser of codes
 	 * 
 	 * @version	2.0.0, beta (------)
 	 * @since	2.0.0, beta (------)
@@ -85,8 +236,8 @@ class action_plugin_tplt extends DokuWiki_Action_Plugin {
 	 * 
 	 * @return	array					解析后的标示片段 · Instructions from parsing
 	 */
-	private function tpltParser($text) {
-		$patternArray = $this->getPatterns();
+	private function tpltParser($text, $parserMode) {
+		$patternArray = $this->getPatterns($parserMode);
 		
 		$reducedText = $text;
 		$scanPosition = 0;
@@ -147,113 +298,18 @@ class action_plugin_tplt extends DokuWiki_Action_Plugin {
 		return $instructions;
 	}
 
-	private function replaceArgs(&$instructions, $imcomingArgs) {
-		foreach ($instructions as $key => $instruction) {
-			if ($instruction['type'] == 'arg' && $instruction['startOrEnd'] = 'end') {
-				$argNameAndDefaultValue = $instructions[$key - 1]['text'];
-				if (strpos($argNameAndDefaultValue, '=') !== false) {
-					$argNameAndDefaultValue = explode('=', $argNameAndDefaultValue, 2);
-					$argName = trim($argNameAndDefaultValue[0]);
-					$defaultValue = trim($argNameAndDefaultValue[1]);
-				} else {
-					$argName = $argNameAndDefaultValue;
-					$defaultValue = false;
-				}
-				if ($instructions[$key - 2]['text'] == '{{{') {
-					if (($this->arrayKeyExists($argName, $imcomingArgs)) || $defaultValue !== false) {
-						if ($this->arrayKeyExists($argName, $imcomingArgs)) {
-							$instructions[$key - 1]['text'] = $imcomingArgs[$argName];
-						} elseif ($defaultValue !== false && !$this->arrayKeyExists($argName, $imcomingArgs)) {
-							$instructions[$key - 1]['text'] = $defaultValue;
-						}
-						unset($instructions[$key]);
-						unset($instructions[$key - 2]);
-					}				
-				}
-			}
-		}
-		$instructions = array_values($instructions);
-	}
-
-	private function replaceTplts(&$instructions, &$pageStack = array()) {
-		$nestLevel = 0;
-		foreach ($instructions as $key => $instruction) {
-			if ($instruction['type'] == 'tplt') {
-				if ($instruction['startOrEnd'] == 'start') {
-					$nestLevel += 1;
-					if ($nestLevel == 1) {
-						$startOrderNo = $key;
-					}
-				} elseif ($instruction['startOrEnd'] == 'end') {
-					$nestLevel -= 1;
-					if ($nestLevel == 0) {
-						$matechedTpltNameAndArgs = '';
-						for ($i = $startOrderNo + 1; $i <= $key - 1; $i++) {
-							$matechedTpltNameAndArgs .= $instructions[$i]['text'];
-						}
-						$tpltText = $this->tpltRendener($matechedTpltNameAndArgs, $pageStack);
-						for ($i = $startOrderNo; $i <= $key - 1; $i++) {
-							unset($instructions[$i]);
-						}
-						unset($instructions[$key]['startOrEnd']);
-						$instructions[$key]['type'] = 'plainText';
-						$instructions[$key]['text'] = $tpltText;
-					}
-				}
-			}
-		}
-		$instructions = array_values($instructions);
-	}
-
-	private function textMerge($instructions) {
-		$text = '';
-		foreach ($instructions as $instruction) {
-			$text .= $instruction['text'];
-		}
-		return trim($text); // ?
-	}
-
-	// ----------------------------------------------------------------
-
-	private function getPatterns()
+	private function getPatterns($parserMode)
 	{
-		$patternArray = array(
-			array(
-				'name' => 'noTplt',
-				'allowSelfNest' => false,
-				# 'allowCrossNest' => false,
-				'allowEnterFrom' => array('tplt'),
-				'patterns' => array(
-					array('start' => '%%', 			'end' => '%%', 			'isPcre' => false),
-					array('start' => '<nowiki>', 	'end' => '</nowiki>', 	'isPcre' => false),
-					array('start' => '<html>', 		'end' => '</html>', 	'isPcre' => false),
-					array('start' => '<HTML>', 		'end' => '</HTML>', 	'isPcre' => false),
-					array('start' => '<php>', 		'end' => '</php>', 		'isPcre' => false),
-					array('start' => '<PHP>', 		'end' => '</PHP>', 		'isPcre' => false),
-					array('start' => '/<code>/', 	'end' => '/<\/code>/', 	'isPcre' => true),
-					array('start' => '/<file>/', 	'end' => '/<\/file>/', 	'isPcre' => true),
-				)
-			),
-			array(
-				'name' => 'tplt',
-				'allowSelfNest' => true,
-				# 'allowCrossNest' => false,
-				'allowEnterFrom' => array(),
-				'patterns' => array(
-					array('start' => '[|', 		'end' => '|]', 		'isPcre' => false)
-				)
-			),
-			array(
-				'name' => 'arg',
-				'allowSelfNest' => false,
-				# 'allowCrossNest' => false,
-				'allowEnterFrom' => array('tplt'),
-				'patterns' => array(
-					array('start' => '{{{', 		'end' => '}}}', 		'isPcre' => false)
-				)
-			),
-		);
-
+		switch ($parserMode) {
+			case 'rawWiki':
+				$patternArray = self::PATTERNS_FOR_RAWWIKI;
+				break;
+			case 'tpltSyntax':
+				$patternArray = self::PATTERNS_FOR_TPLT_SYNTAX;
+				break;
+			default:
+				$patternArray = false;
+		}
 		return $patternArray;
 	}
 
@@ -278,8 +334,10 @@ class action_plugin_tplt extends DokuWiki_Action_Plugin {
 		$firstPosOfPatterns = array();
 		foreach ($patternArray as $patternGroup) {
 			$patternGroupName = $patternGroup['name'];
-			$allowSelfNest = $patternGroup['allowSelfNest'];
-			# $allowCrossNest = $patternGroup['allowCrossNest'];
+			$isCouple = $patternGroup['isCouple'];
+			$allowSelfNest = ($isCouple == true) ? $patternGroup['allowSelfNest'] : false;
+
+			$startOrSelfclosing = ($isCouple == true) ? 'start' : 'selfClosing';
 
 			foreach ($patternGroup['patterns'] as $orderNo => $pattern) {
 				if ($currentNest == $patternGroupName) {
@@ -301,7 +359,7 @@ class action_plugin_tplt extends DokuWiki_Action_Plugin {
 						// 允许自嵌套，正常匹配开始与结束标记
 						if ($orderNo == $currentNestPatternOdr) {
 							// 位于自身嵌套内且开始标记为当前所循环到的标记，正常匹配开始与结束标记
-							list($patternPos1, $matchedText1) = $this->patternMatch($text, $pattern['start'], $pattern['isPcre']);
+							list($patternPos1, $matchedText1) = $this->patternMatch($text, $pattern[$startOrSelfclosing], $pattern['isPcre']);
 							list($patternPos2, $matchedText2) = $this->patternMatch($text, $pattern['end'], $pattern['isPcre']);
 							// 注：这里用了穷举的方法，可能会有更好的写法
 							if ($patternPos1 === false && $patternPos2 === false) {
@@ -313,11 +371,11 @@ class action_plugin_tplt extends DokuWiki_Action_Plugin {
 							} elseif ($patternPos1 !== false && $patternPos2 === false) {
 								$patternPos = $patternPos1;
 								$matchedText = $matchedText1;
-								$startOrEnd = 'start';
+								$startOrEnd = $startOrSelfclosing;
 							} else {
 								$patternPos = min($patternPos1, $patternPos2);
 								$matchedText = ($patternPos2 <= $patternPos1) ? $matchedText2 : $matchedText1;
-								$startOrEnd = ($patternPos2 <= $patternPos1) ? 'end' : 'start';
+								$startOrEnd = ($patternPos2 <= $patternPos1) ? 'end' : $startOrSelfclosing;
 							}
 							if ($patternPos !== false) {
 								$firstPosOfPatterns[$patternPos] = array(
@@ -328,12 +386,12 @@ class action_plugin_tplt extends DokuWiki_Action_Plugin {
 							}
 						} else {
 							// 位于自身嵌套内但开始标记不是当前所循环到的标记，只匹配其开始标记
-							list($patternPos, $matchedText) = $this->patternMatch($text, $pattern['start'], $pattern['isPcre']);
+							list($patternPos, $matchedText) = $this->patternMatch($text, $pattern[$startOrSelfclosing], $pattern['isPcre']);
 							if ($patternPos !== false) {
 								$firstPosOfPatterns[$patternPos] = array(
 									'name' => $patternGroupName, 
 									'orderNo' => $orderNo, 
-									'startOrEnd' => 'start', 
+									'startOrEnd' => $startOrSelfclosing, 
 									'matchedPattern' => $matchedText);
 							}
 						}
@@ -342,24 +400,24 @@ class action_plugin_tplt extends DokuWiki_Action_Plugin {
 					// 没有位于自身嵌套内（可能位于其他嵌套内部），则匹配开始标记
 					if ($currentNest === false) {
 						// 没有位于任何嵌套内
-						list($patternPos, $matchedText) = $this->patternMatch($text, $pattern['start'], $pattern['isPcre']);
+						list($patternPos, $matchedText) = $this->patternMatch($text, $pattern[$startOrSelfclosing], $pattern['isPcre']);
 						if ($patternPos !== false) {
 							$firstPosOfPatterns[$patternPos] = array(
 								'name' => $patternGroupName, 
 								'orderNo' => $orderNo, 
-								'startOrEnd' => 'start', 
+								'startOrEnd' => $startOrSelfclosing, 
 								'matchedPattern' => $matchedText);
 						}
 					} else {
 						// 位于其他嵌套内
 						if (!empty($patternGroup['allowEnterFrom']) && in_array($currentNest, $patternGroup['allowEnterFrom'])) {
 							// 如果该标识允许包含在上一级嵌套内，则匹配开始标记，否则什么也不做
-							list($patternPos, $matchedText) = $this->patternMatch($text, $pattern['start'], $pattern['isPcre']);
+							list($patternPos, $matchedText) = $this->patternMatch($text, $pattern[$startOrSelfclosing], $pattern['isPcre']);
 							if ($patternPos !== false) {
 								$firstPosOfPatterns[$patternPos] = array(
 									'name' => $patternGroupName, 
 									'orderNo' => $orderNo, 
-									'startOrEnd' => 'start', 
+									'startOrEnd' => $startOrSelfclosing, 
 									'matchedPattern' => $matchedText);
 							}
 						}
@@ -422,30 +480,22 @@ class action_plugin_tplt extends DokuWiki_Action_Plugin {
 
 	// ----------------------------------------------------------------
 
-	private function tpltRendener($rawText, &$pageStack) {
+	private function tpltRendener($rawText, $incomingArgs, &$pageStack) {
 		if (!$rawText)
 			return '';	// 如果传入一个空字符串，则返回 false · Return false if the incoming string is empty
 
+		$templateNameAndArgs = $this->getTemplateNameAndArgs($rawText);	// 模板名与各参数 · Template name and arguments
+
+		if ($templateNameAndArgs == false)
+			return '';
+
+		$templateNameDump = $templateNameAndArgs[0];	// 模板名 · template name
+		$argDump = array_slice($templateNameAndArgs, 1);
+
 		$template_arguments = array();	// 存储参数值的数组 · Array for values of arguments
-		$dump = $rawText;
-		$dump = preg_replace_callback('/\[\[\[(((?!(\[\[\[|\]\]\])).*?|(?R))*)\]\]\]/', function($rawText) {return str_replace('|', '~~!~~', $rawText[0]);}, $dump);
-
-		$dump = $this->getTemplateNameAndArgs($dump);	// 模板名与各参数 · Template name and arguments
-		$templateName = $dump[0];	// 模板名 · template name
-
-		# if (!$this->recursionCheck($templateName))	// 递归检查 · recursion check
-			# return $this->getLang('selfCallingBegin') . $templateName . $this->getLang('selfCallingEnd');
-		
-		$dump = $dump[1];
-		# $dump = addcslashes($dump[1], '\\');	// 各参数 · All arguments
-			// 注：传入的各参数值需要在反斜杠前再加一个反斜杠，以防止发生转义
-			//  ·
-			// Note: Need to add backslash before backslashes in incoming argument values to prevent escaping
-		$template_arguments = array();
-		if ($dump)
+		if ($argDump)
 		{
-			$dump = explode('|', $dump);
-			foreach ($dump as $key => $value) {
+			foreach ($argDump as $key => $value) {
 				// 如果声明了参数名，或者以 “=” 开头 · If argument name has been defined or starts with "="
 				if (strpos($value, '=') !== false)
 				{
@@ -461,13 +511,15 @@ class action_plugin_tplt extends DokuWiki_Action_Plugin {
 			// 将参数值中用于替代竖杠符号的“~~!~~”再替换回来
 			//  ·
 			// Restore the vertical line characters replaced by "~~!~~" in argument values before
+		unset($argDump);
 		$argNames = array_keys($template_arguments);
 		foreach ($argNames as $argName) {
 			$pageStackForArgs = $pageStack; // ?
-			$template_arguments[$argName] = $this->tpltMainHandler($template_arguments[$argName], $imcomingArgs, $pageStackForArgs);
+			$template_arguments[$argName] = $this->tpltMainHandler($template_arguments[$argName], $incomingArgs, $pageStackForArgs);
 		}
+
+		$templateName = $this->getTemplateName($templateNameDump);
 		$template = $this->get_template($templateName);
-		$templateName = $this->getTemplateName($templateName);
 		if (!$template) return;
 		
 		if (in_array($templateName, $pageStack)) {
@@ -478,33 +530,45 @@ class action_plugin_tplt extends DokuWiki_Action_Plugin {
 			array_pop($pageStack);
 			return $renderedText;
 		}
-
-
 	}
 
 	private function getTemplateNameAndArgs($match)
 	{
-		$dump = $match;
+		$instructions = $this->tpltParser($match, 'tpltSyntax');
 		
-		switch (strpos($dump, '|'))
-		{
-			case false:
-				$templateName = $dump;
-				$allArguments = '';
-					// 如果没有竖线，则将整个 “$dump” 作为模板名
-					//  · 
-					// If there is no vertical bar, regard whole "$dump" as template name
-				break;
-			case true:
-				$templateName = substr($dump, 0, strpos($dump, '|'));
-				$allArguments = substr($dump, strpos($dump, '|') + 1);
-					// 如果有竖线，则将 “$dump” 从竖线位置分割，得模板名和各参数值
-					//  · 
-					// If vertical bar exists, divide "$dump" into template name and values of arguments at vertical bar
-				break;
+		if (empty($instructions)) {
+			return false;
 		}
 
-		return array($templateName, $allArguments);
+		$templateNameAndArgs = array();
+		$startKey = 0;
+		$arrayCountMinus1 = count($instructions) - 1;
+		foreach ($instructions as $key => $instruction) {
+			if ($instruction['type'] == 'delimiter' || $key == $arrayCountMinus1) {
+				if ($instruction['type'] == 'delimiter') {
+					$endKey = $key;
+				} else {
+					$endKey = $key + 1;
+				}
+				
+				$fragment = '';
+				for ($i = $startKey; $i < $endKey; $i++) {
+					if ($i >= 0) {
+						$fragment .= $instructions[$i]['text'];
+					}
+				}
+				if ($fragment != '') {
+					$templateNameAndArgs[] = $fragment;
+				}
+				$startKey = $key + 1;
+			}
+		}
+
+		if (empty($templateNameAndArgs)) {
+			return false;
+		} else {
+			return $templateNameAndArgs;
+		}
 	}
 
 	/**
@@ -526,7 +590,7 @@ class action_plugin_tplt extends DokuWiki_Action_Plugin {
 	 * @return	string			模板内去除 “<noinclude>” 等标签后的原始代码 · Raw data from the template by removing "<noinclude>" and other tags
 	 */
 	private function get_template($name) {
-		$template = rawWiki($this->getTemplateName($name));
+		$template = rawWiki($name);
 		if (!$template)
 		{
 			return false;
@@ -537,6 +601,9 @@ class action_plugin_tplt extends DokuWiki_Action_Plugin {
 	}
 
 	private function getTemplateName($name) {
+		if (preg_match('/\:{2,}/', $name, $match) != 0)	// 不允许连写冒号 · Consecutive colons are not allowed
+			return '';
+
 		if (substr($this->getConf('namespace'), 0, 1) == ':') {
 			$defaultNamespace = substr($this->getConf('namespace'), 1);
 		} else {
