@@ -5,4 +5,5 @@
  */
 
 $meta['namespace']          = array('string');
+$meta['maxNestLevel']		= array('numeric', '_min' => 0);
 ?>
