@@ -117,8 +117,9 @@ class action_plugin_tplt extends DokuWiki_Action_Plugin {
 	 */
 	public function tpltTextReplace(Doku_Event &$event, $param) {
 		$text = $event->data;	// 原始 Wiki 代码
-		global $ID;
-		$pageStack = array($ID);
+		# global $ID;
+		# $pageStack = array($ID);
+		$pageStack = array();	// 根页面不应填入页面堆栈中
 
 		$text = $this->tpltMainHandler($text, array(), $pageStack);
 
@@ -139,8 +140,7 @@ class action_plugin_tplt extends DokuWiki_Action_Plugin {
 	 * 
 	 */
 	private function tpltMainHandler($text, $incomingArgs = array(), &$pageStack = array()) {
-		if ($this->getConf('maxNestLevel') != 0 && count($pageStack) - 1 > $this->getConf('maxNestLevel')) {
-		// 注：count($pageStack) 减 1 是因为根页面虽然在 $pageStack 当中，但不算进嵌套
+		if ($this->getConf('maxNestLevel') != 0 && count($pageStack) > $this->getConf('maxNestLevel')) {
 			return $text;	// 如果超过最大嵌套层数，则返回文本本身
 		}
 
@@ -485,6 +485,11 @@ class action_plugin_tplt extends DokuWiki_Action_Plugin {
 		if ($templateNameAndArgs == false)
 			return '';
 
+		$fragmentKeys = array_keys($templateNameAndArgs);
+		foreach ($fragmentKeys as $fragmentKey) {
+			$templateNameAndArgs[$fragmentKey] = trim($templateNameAndArgs[$fragmentKey]);
+		}
+
 		$templateNameDump = $templateNameAndArgs[0];	// 模板名 · template name
 		$argDump = array_slice($templateNameAndArgs, 1);
 
@@ -516,7 +521,9 @@ class action_plugin_tplt extends DokuWiki_Action_Plugin {
 
 		$templateName = $this->getTemplateName($templateNameDump);
 		$template = $this->get_template($templateName);
-		if (!$template) return;
+		if (!$template) {
+			return '[[' . $templateName . ']]';	// 如果模板不存在，返回一个该模板的链接（？）
+		} 
 		
 		if (in_array($templateName, $pageStack)) {
 			return '';
