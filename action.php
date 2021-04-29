@@ -5,12 +5,7 @@
  * @license	GPL 2 http://www.gnu.org/licenses/gpl-2.0.html
  * @author	AlloyDome
  * 
- * @version 2.0.0, beta (------)
- */
-
-/*
- * 目前已知的 bug：
- * 模板参数名可能会出现多个冒号连用的情况（例如：“::::template:...”，这种写法一般不用，但可能有人会故意这么写），这样可能会使模板递归检查失效，造成死循环。
+ * @version 2.0.0, beta (210429)
  */
 
 use dokuwiki\Parsing\Parser;
@@ -33,8 +28,8 @@ class action_plugin_tplt extends DokuWiki_Action_Plugin {
 				array('start' => '<HTML>', 						'end' => '</HTML>', 	'isPcre' => false),
 				array('start' => '<php>', 						'end' => '</php>', 		'isPcre' => false),
 				array('start' => '<PHP>', 						'end' => '</PHP>', 		'isPcre' => false),
-				array('start' => '/<code\b(?=.*<\/code>)/', 	'end' => '/<\/code>/', 	'isPcre' => true),
-				array('start' => '/<file\b(?=.*<\/file>)/', 	'end' => '/<\/file>/', 	'isPcre' => true),
+				array('start' => '/<code\b(?=.*<\/code>)/s', 	'end' => '/<\/code>/', 	'isPcre' => true),
+				array('start' => '/<file\b(?=.*<\/file>)/s', 	'end' => '/<\/file>/', 	'isPcre' => true),
 			)
 		),
 		array(
@@ -70,8 +65,8 @@ class action_plugin_tplt extends DokuWiki_Action_Plugin {
 				array('start' => '<HTML>', 						'end' => '</HTML>', 	'isPcre' => false),
 				array('start' => '<php>', 						'end' => '</php>', 		'isPcre' => false),
 				array('start' => '<PHP>', 						'end' => '</PHP>', 		'isPcre' => false),
-				array('start' => '/<code\b(?=.*<\/code>)/', 	'end' => '/<\/code>/', 	'isPcre' => true),
-				array('start' => '/<file\b(?=.*<\/file>)/', 	'end' => '/<\/file>/', 	'isPcre' => true),
+				array('start' => '/<code\b(?=.*<\/code>)/s', 	'end' => '/<\/code>/', 	'isPcre' => true),
+				array('start' => '/<file\b(?=.*<\/file>)/s', 	'end' => '/<\/file>/', 	'isPcre' => true),
 			)
 		),
 		array(
@@ -110,8 +105,8 @@ class action_plugin_tplt extends DokuWiki_Action_Plugin {
 	 * tpltTextReplace(Doku_Event &$event, $param)
 	 * 将原始 Wiki 代码中的模板调用部分替换为模板本身内容 · Replace template calling in raw Wiki code by template contents 
 	 * 
-	 * @version	2.0.0, beta (------)
-	 * @since	2.0.0, beta (------)
+	 * @version	2.0.0, beta (210429)
+	 * @since	2.0.0, beta (210429)
 	 * 
 	 * @author	AlloyDome
 	 * 
@@ -137,8 +132,8 @@ class action_plugin_tplt extends DokuWiki_Action_Plugin {
 	 * tpltMainHandler($text)
 	 * 主处理函数
 	 * 
-	 * @version	2.0.0, beta (------)
-	 * @since	2.0.0, beta (------)
+	 * @version	2.0.0, beta (210429)
+	 * @since	2.0.0, beta (210429)
 	 * 
 	 * @author	AlloyDome
 	 * 
@@ -227,8 +222,8 @@ class action_plugin_tplt extends DokuWiki_Action_Plugin {
 	 * tpltParser($text, $parserMode)
 	 * 代码解析器 · Parser of codes
 	 * 
-	 * @version	2.0.0, beta (------)
-	 * @since	2.0.0, beta (------)
+	 * @version	2.0.0, beta (210429)
+	 * @since	2.0.0, beta (210429)
 	 * 
 	 * @author	AlloyDome
 	 * 
@@ -274,6 +269,7 @@ class action_plugin_tplt extends DokuWiki_Action_Plugin {
 					'text' => $firstPattern['pattern']['matchedPattern']);
 				
 				if ($firstPattern['pattern']['startOrEnd'] == 'start') {
+				// 注：如果是自关闭标识，则不计入嵌套堆栈中
 					$nestStack[] = array(
 						'pattern' => $firstPattern['pattern']['name'],
 						'orderNo' => $firstPattern['pattern']['orderNo']
@@ -317,8 +313,8 @@ class action_plugin_tplt extends DokuWiki_Action_Plugin {
 	 * tpltParser($text)
 	 * 寻找各标识第一次出现的位置 · Find the first positions of patterns
 	 * 
-	 * @version	2.0.0, beta (------)
-	 * @since	2.0.0, beta (------)
+	 * @version	2.0.0, beta (210429)
+	 * @since	2.0.0, beta (210429)
 	 * 
 	 * @author	AlloyDome
 	 * 
@@ -595,8 +591,8 @@ class action_plugin_tplt extends DokuWiki_Action_Plugin {
 		{
 			return false;
 		}
-		$template = preg_replace('/<noinclude>.*?<\/noinclude>/s', '', $template);
-		$template = preg_replace('/<includeonly>|<\/includeonly>/', '', $template);
+		$template = preg_replace('/<noinclude>.*?<\/noinclude>\n?/s', '', $template);
+		$template = preg_replace('/<includeonly>\n?|<\/includeonly>\n?/', '', $template);
 		return $template;
 	}
 
