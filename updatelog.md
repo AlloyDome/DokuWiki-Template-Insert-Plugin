@@ -1,4 +1,13 @@
 # Version History · 版本记录
+## 2.0.0, beta (210429)
+*Apr 29, 2021 · 2021 年 4 月 29 日*
+
+* Rewrite the code for template syntax
+
+---
+
+* 重写模板语法代码
+
 ## 1.1 (210303)
 *Mar 3, 2021 · 2021 年 3 月 3 日*
 
