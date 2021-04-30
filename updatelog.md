@@ -8,7 +8,7 @@
 
 * 重写模板语法代码
 
-## 1.1 (210303)
+## 1.1, beta (210303)
 *Mar 3, 2021 · 2021 年 3 月 3 日*
 
 * Backslach escaping problem solved
@@ -17,7 +17,7 @@
 
 * 解决了反斜杠字符发生转义的问题
 
-## 1.0 (210105)
+## 1.0, beta (210105)
 *Jan 5, 2021 · 2021 年 1 月 5 日*
 
 The initial release including new functions below:
