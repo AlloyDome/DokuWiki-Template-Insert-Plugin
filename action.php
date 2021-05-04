@@ -5,7 +5,7 @@
  * @license	GPL 2 http://www.gnu.org/licenses/gpl-2.0.html
  * @author	AlloyDome
  * 
- * @version 2.0.0, beta (210429)
+ * @version 2.0.1, beta (210504)
  */
 
 use dokuwiki\Parsing\Parser;
@@ -475,7 +475,22 @@ class action_plugin_tplt extends DokuWiki_Action_Plugin {
 	}
 
 	// ----------------------------------------------------------------
-
+	
+	/**
+	 * tpltRendener($rawText, $incomingArgs, &$pageStack)
+	 * 输出模板内容文本的渲染器 · Renderer of template text
+	 * 
+	 * @version	2.0.0, beta (210429)
+	 * @since	1.0, beta (210105)
+	 * 
+	 * @author	1. Vitalie Ciubotaru <vitalie@ciubotaru.tk>
+	 * 			2. Alloydome
+	 *
+	 * @param	string	$rawText		未处理的模板调用语法，包括模板名和参数 · Unprocessed template calling syntax, including template name and arguments
+	 * @param	array	$incomingArgs	传入参数 · Incoming arguments
+	 * @param	array	&$ageStack		页面堆栈 · Stack of pages
+	 * @return	string					替换过参数的模板内容文本 · Argument replaced template text
+	 */
 	private function tpltRendener($rawText, $incomingArgs, &$pageStack) {
 		if (!$rawText)
 			return '';	// 如果传入一个空字符串，则返回 false · Return false if the incoming string is empty
@@ -603,9 +618,22 @@ class action_plugin_tplt extends DokuWiki_Action_Plugin {
 		return $template;
 	}
 
+	/** 
+	 * getTemplateName($match, $mode, $dumpMode)
+	 * 获得模板的名称 · Get template name
+	 * 
+	 * @version	2.0.1, beta (210504)
+	 * @since	1.0, beta (210105)
+	 * 
+	 * @author	AlloyDome
+	 * 
+	 * @param	string	$name	未处理的模板名称 · Unprocessed template name
+	 * @return	string			处理后的模板名称 · Processed template name
+	 */
 	private function getTemplateName($name) {
 		if (preg_match('/\:{2,}/', $name, $match) != 0)	// 不允许连写冒号 · Consecutive colons are not allowed
 			return '';
+			// 注：如果使用了 cleanID() 函数的话，可以不检测连写冒号
 
 		if (substr($this->getConf('namespace'), 0, 1) == ':') {
 			$defaultNamespace = substr($this->getConf('namespace'), 1);
@@ -614,13 +642,15 @@ class action_plugin_tplt extends DokuWiki_Action_Plugin {
 		}
 
 		if (substr($name, 0, 1) == ':') {
-			return substr($name, 1);
+			$name = substr($name, 1);
 		} else {
 			if ($this->getConf('namespace') == '') {
-				return $name;
+				$name = $name;
 			} else {
-				return $this->getConf('namespace') . ':' . $name;
+				$name = $this->getConf('namespace') . ':' . $name;
 			}
 		}
+
+		return cleanID($name);	// 清除大写字母以及特殊符号
 	}
 } 
