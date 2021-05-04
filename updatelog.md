@@ -1,4 +1,13 @@
 # Version History · 版本记录
+## 2.0.1, beta (210504)
+*May 4, 2021 · 2021 年 5 月 4 日*
+
+* Improve the handler of template names
+
+---
+
+* 完善模板名处理机制
+
 ## 2.0.0, beta (210429)
 *Apr 29, 2021 · 2021 年 4 月 29 日*
 
