@@ -8,10 +8,10 @@
  * @version 2.1.0, beta (------)
  */
 
-use dokuwiki\Parsing\Parser;
-
 if(!defined('DOKU_INC'))
 	die();	// 必须在 Dokuwiki 下运行 · Must be run within Dokuwiki
+
+use dokuwiki\Parsing\Parser;
 
 abstract class tplt_utils extends DokuWiki_Action_Plugin {
 
@@ -134,67 +134,143 @@ abstract class tplt_utils extends DokuWiki_Action_Plugin {
 		}
 
 		$instructions = $this->tpltParser($text, 'rawWiki');
-		$this->replaceArgs($instructions, $incomingArgs);
-		$this->replaceTplts($instructions, $incomingArgs, $pageStack);	// 注：可以考虑将“[| ... |]”里面的“{{{ ... }}}”参数（当前页面的传入参数）在这个函数里面做替换，而不是在 replaceArgs() 函数里面
+		$stropsMap = $this->replaceArgsAndTplt($instructions, $incomingArgs, $pageStack);	// 注：可以考虑将“[| ... |]”里面的“{{{ ... }}}”参数（当前页面的传入参数）在这个函数里面做替换，而不是在 replaceArgs() 函数里面
 		return $this->textMerge($instructions);
 	}
 
-	private function replaceArgs(&$instructions, $incomingArgs) {
-		foreach ($instructions as $key => $instruction) {
-			if ($instruction['type'] == 'arg' && $instruction['startOrEnd'] = 'end') {
-				$argNameAndDefaultValue = $instructions[$key - 1]['text'];
-				if (strpos($argNameAndDefaultValue, '=') !== false) {
-					$argNameAndDefaultValue = explode('=', $argNameAndDefaultValue, 2);
-					$argName = trim($argNameAndDefaultValue[0]);
-					$defaultValue = trim($argNameAndDefaultValue[1]);
-				} else {
-					$argName = $argNameAndDefaultValue;
-					$defaultValue = false;
-				}
-				if ($instructions[$key - 2]['text'] == '{{{') {
-					if (($this->arrayKeyExists($argName, $incomingArgs)) || $defaultValue !== false) {
-						if ($this->arrayKeyExists($argName, $incomingArgs)) {
-							$instructions[$key - 1]['text'] = $incomingArgs[$argName];
-						} elseif ($defaultValue !== false && !$this->arrayKeyExists($argName, $incomingArgs)) {
-							$instructions[$key - 1]['text'] = $defaultValue;
-						}
-						unset($instructions[$key]);
-						unset($instructions[$key - 2]);
-					}				
-				}
-			}
+	/**
+	 * replaceArgsAndTplt(&$instructions, $incomingArgs, &$pageStack = array())
+	 * 替换文本中的参数和模板
+	 * 
+	 * @version	2.1.0, beta (------)
+	 * @since	2.1.0, beta (------)
+	 * 
+	 * @author	AlloyDome
+	 * 
+	 */
+	private function replaceArgsAndTplt(&$instructions, $incomingArgs, &$pageStack = array()) {
+		// TODO: 此函数内代码十分混乱，有待优化
+		if (empty($pageStack)) {
+			$isRootPage = true;
+		} else {
+			$isRootPage = false;
 		}
-		$instructions = array_values($instructions);
-	}
 
-	private function replaceTplts(&$instructions, $incomingArgs, &$pageStack = array()) {
+		$strposMap = array();	// 字符位置映射表（用于修正章节编辑按钮的定位）
+		$textStartPos = array('ori' => 0, 'pro' => 0);	// 纯文本开始位置
+		$textCurrentPos = $textStartPos;	// 纯文本长度
+		$isInArgOrTplt = false;
+
 		$nestLevel = 0;
 		foreach ($instructions as $key => $instruction) {
-			if ($instruction['type'] == 'tplt') {
-				if ($instruction['startOrEnd'] == 'start') {
-					$nestLevel += 1;
-					if ($nestLevel == 1) {
-						$startOrderNo = $key;
+			switch ($instruction['type']) {
+				case 'arg':
+				case 'tplt': {
+					if($instruction['startOrEnd'] == 'start' && $nestLevel == 0) {
+						$strposMap[] = array(
+							'ori' => array($textStartPos['ori'], $textCurrentPos['ori'] - 1),
+							'pro' => array($textStartPos['pro'], $textCurrentPos['pro'] - 1)
+						);
+						$isInArgOrTplt = true;
 					}
-				} elseif ($instruction['startOrEnd'] == 'end') {
-					$nestLevel -= 1;
-					if ($nestLevel == 0) {
-						$matechedTpltNameAndArgs = '';
-						for ($i = $startOrderNo + 1; $i <= $key - 1; $i++) {
-							$matechedTpltNameAndArgs .= $instructions[$i]['text'];
+					break;
+				}
+			}
+
+			if (!$isInArgOrTplt) {
+				$textCurrentPos['ori'] += strlen($instruction['text']);
+				$textCurrentPos['pro'] += strlen($instruction['text']);
+				if ($key == count($instructions) - 1) {
+					$strposMap[] = array(
+						'ori' => array($textStartPos['ori'], $textCurrentPos['ori'] - 1),
+						'pro' => array($textStartPos['pro'], $textCurrentPos['pro'] - 1)
+					);	
+				}
+			}
+
+			switch ($instruction['type']) {
+				case 'arg': {
+					switch ($instruction['startOrEnd']) {
+						case 'start': {
+							break;
 						}
-						$tpltText = $this->tpltRendener($matechedTpltNameAndArgs, $incomingArgs, $pageStack);
-						for ($i = $startOrderNo; $i <= $key - 1; $i++) {
-							unset($instructions[$i]);
+						case 'end': {
+							for ($i = $key - 2; $i <= $key; $i++) {
+								$textCurrentPos['ori'] += strlen($instructions[$i]['text']);
+							}
+							$argNameAndDefaultValue = $instructions[$key - 1]['text'];
+							if (strpos($argNameAndDefaultValue, '=') !== false) {
+								$argNameAndDefaultValue = explode('=', $argNameAndDefaultValue, 2);
+								$argName = trim($argNameAndDefaultValue[0]);
+								$defaultValue = trim($argNameAndDefaultValue[1]);
+							} else {
+								$argName = $argNameAndDefaultValue;
+								$defaultValue = false;
+							}
+							if ($instructions[$key - 2]['type'] == 'arg' && $instruction['startOrEnd'] = 'start' 
+							&& (($this->arrayKeyExists($argName, $incomingArgs)) || $defaultValue !== false)) {
+								if ($this->arrayKeyExists($argName, $incomingArgs)) {
+									$instructions[$key]['text'] = $incomingArgs[$argName];
+								} elseif ($defaultValue !== false && !$this->arrayKeyExists($argName, $incomingArgs)) {
+									$instructions[$key]['text'] = $defaultValue;
+								}
+								$instructions[$key - 1]['text'] = '';
+								$instructions[$key - 2]['text'] = '';
+							}
+							for ($i = $key - 2; $i <= $key; $i++) {
+								$textCurrentPos['pro'] += strlen($instructions[$i]['text']);
+							}
+							$textStartPos = $textCurrentPos;
+							$isInArgOrTplt = false;
+							break;	
 						}
-						unset($instructions[$key]['startOrEnd']);
-						$instructions[$key]['type'] = 'plainText';
-						$instructions[$key]['text'] = $tpltText;
 					}
+					break;
+				} case 'tplt': {
+					switch ($instruction['startOrEnd']) {
+						case 'start': {
+							$nestLevel += 1;
+							if ($nestLevel == 1) {
+								$startOrderNo = $key;
+							}
+							break;
+						} case 'end': {
+							$nestLevel -= 1;
+							if ($nestLevel == 0) {
+								for ($i = $startOrderNo; $i <= $key; $i++) {
+									$textCurrentPos['ori'] += strlen($instructions[$i]['text']);
+								}
+								$matechedTpltNameAndArgs = '';
+								for ($i = $startOrderNo + 1; $i <= $key - 1; $i++) {
+									$matechedTpltNameAndArgs .= $instructions[$i]['text'];
+								}
+								$tpltText = $this->tpltRendener($matechedTpltNameAndArgs, $incomingArgs, $pageStack);
+								for ($i = $startOrderNo; $i <= $key - 1; $i++) {
+									$instructions[$i]['text'] = '';
+								}
+								unset($instructions[$key]['startOrEnd']);
+								$instructions[$key]['type'] = 'plainText';
+								$instructions[$key]['text'] = $tpltText;
+
+								for ($i = $startOrderNo; $i <= $key; $i++) {
+									$textCurrentPos['pro'] += strlen($instructions[$i]['text']);
+								}
+								
+								$textStartPos = $textCurrentPos;
+								$isInArgOrTplt = false;
+							}
+							break;
+						}
+					}
+					break;
 				}
 			}
 		}
 		$instructions = array_values($instructions);
+
+		if ($isRootPage) {
+			return $strposMap;
+		}
 	}
 
 	private function textMerge($instructions) {
