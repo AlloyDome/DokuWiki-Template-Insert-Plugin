@@ -13,107 +13,89 @@ if(!defined('DOKU_INC'))
 
 use dokuwiki\Parsing\Parser;
 
-abstract class tplt_utils extends DokuWiki_Action_Plugin {
+trait plugin_tplt_utils {
 
-	const PATTERNS_FOR_RAWWIKI = array(
-		array(
-			'name' => 'nowiki',
-			'isCouple' => true,
-			'allowSelfNest' => false,
-			'allowEnterFrom' => array('tplt'),
-			'patterns' => array(
-				array('start' => '%%', 							'end' => '%%', 			'isPcre' => false),
-				array('start' => '<nowiki>', 					'end' => '</nowiki>', 	'isPcre' => false),
-				array('start' => '<html>', 						'end' => '</html>', 	'isPcre' => false),
-				array('start' => '<HTML>', 						'end' => '</HTML>', 	'isPcre' => false),
-				array('start' => '<php>', 						'end' => '</php>', 		'isPcre' => false),
-				array('start' => '<PHP>', 						'end' => '</PHP>', 		'isPcre' => false),
-				array('start' => '/<code\b(?=.*<\/code>)/s', 	'end' => '/<\/code>/', 	'isPcre' => true),
-				array('start' => '/<file\b(?=.*<\/file>)/s', 	'end' => '/<\/file>/', 	'isPcre' => true),
-			)
-		),
-		array(
-			'name' => 'tplt',
-			'isCouple' => true,
-			'allowSelfNest' => true,
-			'allowEnterFrom' => array(),
-			'patterns' => array(
-				array('start' => '[|', 		'end' => '|]', 				'isPcre' => false)
-			)
-		),
-		array(
-			'name' => 'arg',
-			'isCouple' => true,
-			'allowSelfNest' => false,
-			'allowEnterFrom' => array(),
-			'patterns' => array(
-				array('start' => '{{{', 		'end' => '}}}', 		'isPcre' => false)
-			)
-		),
-	);
-
-	const PATTERNS_FOR_TPLT_SYNTAX = array(
-		array(
-			'name' => 'nowiki',
-			'isCouple' => true,
-			'allowSelfNest' => false,
-			'allowEnterFrom' => array('tplt'),
-			'patterns' => array(
-				array('start' => '%%', 							'end' => '%%', 			'isPcre' => false),
-				array('start' => '<nowiki>', 					'end' => '</nowiki>', 	'isPcre' => false),
-				array('start' => '<html>', 						'end' => '</html>', 	'isPcre' => false),
-				array('start' => '<HTML>', 						'end' => '</HTML>', 	'isPcre' => false),
-				array('start' => '<php>', 						'end' => '</php>', 		'isPcre' => false),
-				array('start' => '<PHP>', 						'end' => '</PHP>', 		'isPcre' => false),
-				array('start' => '/<code\b(?=.*<\/code>)/s', 	'end' => '/<\/code>/', 	'isPcre' => true),
-				array('start' => '/<file\b(?=.*<\/file>)/s', 	'end' => '/<\/file>/', 	'isPcre' => true),
-			)
-		),
-		array(
-			'name' => 'delimiter',
-			'isCouple' => false,
-			'allowEnterFrom' => array(),
-			'patterns' => array(
-				array('selfClosing' => '|', 'isPcre' => false)
-			)
-		),
-		array(
-			'name' => 'tplt',
-			'isCouple' => true,
-			'allowSelfNest' => true,
-			'allowEnterFrom' => array(),
-			'patterns' => array(
-				array('start' => '[|', 		'end' => '|]', 				'isPcre' => false)
-			)
-		)
-	);
-
-	// ----------------------------------------------------------------
-
-	/**
-	 * tpltTextReplace(Doku_Event &$event, $param)
-	 * 将原始 Wiki 代码中的模板调用部分替换为模板本身内容 · Replace template calling in raw Wiki code by template contents 
-	 * 
-	 * @version	2.0.0, beta (210429)
-	 * @since	2.0.0, beta (210429)
-	 * 
-	 * @author	AlloyDome
-	 * 
-	 * @param	Doku_Event	&$event	DokuWiki 事件类，$event 的 $data 变量就是原始 Wiki 代码
-	 * 								 · 
-	 * 								DokuWiki event class, the variable $data in $event is the raw Wiki code
-	 * @param	mixed		$param	相关参数（暂时无用） · Parameters (useless now)
-	 */
-	public function tpltTextReplace(Doku_Event &$event, $param) {
-		$text = $event->data;	// 原始 Wiki 代码
-		# global $ID;
-		# $pageStack = array($ID);
-		$pageStack = array();	// 根页面不应填入页面堆栈中
-
-		$text = $this->tpltMainHandler($text, array(), $pageStack);
-
-		// 解析完了以后把模板内容都替换掉
-		$event->data = $text;
+	private function getPatterns($parserMode) {
+		switch ($parserMode) {
+			case 'rawWiki': {
+				return array(
+					array(
+						'name' => 'nowiki',
+						'isCouple' => true,
+						'allowSelfNest' => false,
+						'allowEnterFrom' => array('tplt'),
+						'patterns' => array(
+							array('start' => '%%', 							'end' => '%%', 			'isPcre' => false),
+							array('start' => '<nowiki>', 					'end' => '</nowiki>', 	'isPcre' => false),
+							array('start' => '<html>', 						'end' => '</html>', 	'isPcre' => false),
+							array('start' => '<HTML>', 						'end' => '</HTML>', 	'isPcre' => false),
+							array('start' => '<php>', 						'end' => '</php>', 		'isPcre' => false),
+							array('start' => '<PHP>', 						'end' => '</PHP>', 		'isPcre' => false),
+							array('start' => '/<code\b(?=.*<\/code>)/s', 	'end' => '/<\/code>/', 	'isPcre' => true),
+							array('start' => '/<file\b(?=.*<\/file>)/s', 	'end' => '/<\/file>/', 	'isPcre' => true),
+						)
+					),
+					array(
+						'name' => 'tplt',
+						'isCouple' => true,
+						'allowSelfNest' => true,
+						'allowEnterFrom' => array(),
+						'patterns' => array(
+							array('start' => '[|', 		'end' => '|]', 				'isPcre' => false)
+						)
+					),
+					array(
+						'name' => 'arg',
+						'isCouple' => true,
+						'allowSelfNest' => false,
+						'allowEnterFrom' => array(),
+						'patterns' => array(
+							array('start' => '{{{', 		'end' => '}}}', 		'isPcre' => false)
+						)
+					),
+				);
+			}
+			case 'tpltSyntax': {
+				return array(
+					array(
+						'name' => 'nowiki',
+						'isCouple' => true,
+						'allowSelfNest' => false,
+						'allowEnterFrom' => array('tplt'),
+						'patterns' => array(
+							array('start' => '%%', 							'end' => '%%', 			'isPcre' => false),
+							array('start' => '<nowiki>', 					'end' => '</nowiki>', 	'isPcre' => false),
+							array('start' => '<html>', 						'end' => '</html>', 	'isPcre' => false),
+							array('start' => '<HTML>', 						'end' => '</HTML>', 	'isPcre' => false),
+							array('start' => '<php>', 						'end' => '</php>', 		'isPcre' => false),
+							array('start' => '<PHP>', 						'end' => '</PHP>', 		'isPcre' => false),
+							array('start' => '/<code\b(?=.*<\/code>)/s', 	'end' => '/<\/code>/', 	'isPcre' => true),
+							array('start' => '/<file\b(?=.*<\/file>)/s', 	'end' => '/<\/file>/', 	'isPcre' => true),
+						)
+					),
+					array(
+						'name' => 'delimiter',
+						'isCouple' => false,
+						'allowEnterFrom' => array(),
+						'patterns' => array(
+							array('selfClosing' => '|', 'isPcre' => false)
+						)
+					),
+					array(
+						'name' => 'tplt',
+						'isCouple' => true,
+						'allowSelfNest' => true,
+						'allowEnterFrom' => array(),
+						'patterns' => array(
+							array('start' => '[|', 		'end' => '|]', 				'isPcre' => false)
+						)
+					)
+				);
+			}
+			default: {
+				return false;
+			}
+		}
 	}
 
 	// ----------------------------------------------------------------
@@ -357,21 +339,6 @@ abstract class tplt_utils extends DokuWiki_Action_Plugin {
 			}
 		}
 		return $instructions;
-	}
-
-	private function getPatterns($parserMode)
-	{
-		switch ($parserMode) {
-			case 'rawWiki':
-				$patternArray = self::PATTERNS_FOR_RAWWIKI;
-				break;
-			case 'tpltSyntax':
-				$patternArray = self::PATTERNS_FOR_TPLT_SYNTAX;
-				break;
-			default:
-				$patternArray = false;
-		}
-		return $patternArray;
 	}
 
 	/**
