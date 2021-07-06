@@ -5,16 +5,20 @@
  * @license	GPL 2 http://www.gnu.org/licenses/gpl-2.0.html
  * @author	AlloyDome
  * 
- * @version 2.1.0, beta (------)
+ * @since	2.1.0, beta (210706)
+ * @version 2.1.0, beta (210706)
  */
+
+use dokuwiki\lib\plugins\tplt\inc as inc;
 
 if(!defined('DOKU_INC'))
 	die();	// 必须在 Dokuwiki 下运行 · Must be run within Dokuwiki
 
 require_once(DOKU_PLUGIN . 'tplt/inc/utils.php');
+require_once(DOKU_PLUGIN . 'tplt/inc/strposMap.php');
 
 class action_plugin_tplt_wikitextpreprocess extends DokuWiki_Action_Plugin {
-	use plugin_tplt_utils;	// 见 ../inc 文件夹内的 utils.php · see utils.php in ../inc folder
+	use inc\plugin_tplt_utils;	// 见 ../inc 文件夹内的 utils.php · see utils.php in ../inc folder
 
 	/**
 	 * register(Doku_Event_Handler $controller)
@@ -45,9 +49,12 @@ class action_plugin_tplt_wikitextpreprocess extends DokuWiki_Action_Plugin {
 		$text = $event->data;	// 原始 Wiki 代码
 		$pageStack = array();	// 页面堆栈（注：根页面不应填入页面堆栈中）
 
-		$text = $this->tpltMainHandler($text, array(), $pageStack);
+		$strposMap = false;
+		$text = $this->tpltMainHandler($text, array(), $pageStack, $strposMap);
 
-		// 解析完了以后把模板内容都替换掉
+		inc\plugin_tplt_strposMap::$strposMap = $strposMap; // 存储字符位置映射表
+
+		
 		$event->data = $text;
 	}
 } 
