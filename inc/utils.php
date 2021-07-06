@@ -5,8 +5,11 @@
  * @license	GPL 2 http://www.gnu.org/licenses/gpl-2.0.html
  * @author	AlloyDome
  * 
- * @version 2.1.0, beta (------)
+ * @since	2.1.0, beta (210706)
+ * @version 2.1.0, beta (210706)
  */
+
+namespace dokuwiki\lib\plugins\tplt\inc;
 
 if(!defined('DOKU_INC'))
 	die();	// 必须在 Dokuwiki 下运行 · Must be run within Dokuwiki
@@ -50,7 +53,7 @@ trait plugin_tplt_utils {
 						'allowSelfNest' => false,
 						'allowEnterFrom' => array(),
 						'patterns' => array(
-							array('start' => '{{{', 		'end' => '}}}', 		'isPcre' => false)
+							array('start' => '/{{{(?!{)/', 	'end' => '/(?<!})}}}/', 'isPcre' => true)
 						)
 					),
 				);
@@ -110,13 +113,15 @@ trait plugin_tplt_utils {
 	 * @author	AlloyDome
 	 * 
 	 */
-	private function tpltMainHandler($text, $incomingArgs = array(), &$pageStack = array()) {
+	private function tpltMainHandler($text, $incomingArgs = array(), &$pageStack = array(), &$strposMap = false) {	
 		if ($this->getConf('maxNestLevel') != 0 && count($pageStack) > $this->getConf('maxNestLevel')) {
 			return $text;	// 如果超过最大嵌套层数，则返回文本本身
 		}
 
-		$instructions = $this->tpltParser($text, 'rawWiki');
-		$stropsMap = $this->replaceArgsAndTplt($instructions, $incomingArgs, $pageStack);	// 注：可以考虑将“[| ... |]”里面的“{{{ ... }}}”参数（当前页面的传入参数）在这个函数里面做替换，而不是在 replaceArgs() 函数里面
+		$instructions = $this->tpltParser($text, 'rawWiki');	// 解析
+		$strposMap = $this->replaceArgsAndTplt($instructions, $incomingArgs, $pageStack);	// 解析完了以后把模板内容都替换掉
+			// 注：可以考虑将“[| ... |]”里面的“{{{ ... }}}”参数（当前页面的传入参数）在这个函数里面做替换，而不是在 replaceArgs() 函数里面
+		
 		return $this->textMerge($instructions);
 	}
 
@@ -124,8 +129,8 @@ trait plugin_tplt_utils {
 	 * replaceArgsAndTplt(&$instructions, $incomingArgs, &$pageStack = array())
 	 * 替换文本中的参数和模板
 	 * 
-	 * @version	2.1.0, beta (------)
-	 * @since	2.1.0, beta (------)
+	 * @version	2.1.0, beta (210706)
+	 * @since	2.1.0, beta (210706)
 	 * 
 	 * @author	AlloyDome
 	 * 
@@ -252,6 +257,8 @@ trait plugin_tplt_utils {
 
 		if ($isRootPage) {
 			return $strposMap;
+		} else {
+			return array();
 		}
 	}
 
@@ -457,8 +464,20 @@ trait plugin_tplt_utils {
 	}
 
 	/**
-	 * 查找标识的位置及匹配片段
-	 */
+	* patternMatch($text, $pattern, $isPcre)
+	* 查找一个标识的位置及匹配片段 · Find the positions of a pattern and the matched text
+	* 
+	* @version	2.0.0, beta (210429)
+	* @since	2.1.0, beta (210706)
+	* 
+	* @author	AlloyDome
+	* 
+	* @param	string	$text				原始 Wiki 代码 · Raw Wiki code
+	* @param	string	$pattern			标识字符串 · Pattern
+	* @param	bool	$isPcre				是否采用正则匹配 · Use regex or not
+	* 
+	* @return	array						第一次出现的位置 · The first position of the pattern
+	*/
 	private function patternMatch($text, $pattern, $isPcre) {
 		if ($isPcre == false) {
 			$findResult = strpos($text, $pattern);
@@ -466,9 +485,9 @@ trait plugin_tplt_utils {
 				return array($findResult, $pattern);
 			}
 		} elseif ($isPcre == true) {
-			$findResult = preg_match($pattern, $text, $match);
+			$findResult = preg_match($pattern, $text, $match, PREG_OFFSET_CAPTURE);
 			if ($findResult != 0) {
-				return array(strpos($text, $match[0]), $match[0]);
+				return array($match[0][1], $match[0][0]);
 			}
 		}
 		return array(false, false);
