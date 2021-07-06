@@ -1,6 +1,6 @@
 <?php
 /**
- * DokuWiki Plugin tplt (Syntax Component)
+ * DokuWiki tplt 插件（语法类插件） · DokuWiki plugin tplt (syntax component)
  *
  * @license	GPL 2 http://www.gnu.org/licenses/gpl-2.0.html
  * @author	1. Vitalie Ciubotaru <vitalie@ciubotaru.tk>
@@ -9,85 +9,114 @@
  * @version 1.1 (210303)
  */
 
-// 必须在 Dokuwiki 下运行 · Must be run within Dokuwiki
 if (!defined('DOKU_INC'))
-	die();
+	die();	// 必须在 Dokuwiki 下运行 · Must be run within Dokuwiki
 
 if (!defined('DOKU_LF'))
-	define('DOKU_LF', "\n");
+	define('DOKU_LF', "\n");	// 定义换行符常量 · Define the constant of line feed character 
 if (!defined('DOKU_TAB'))
-	define('DOKU_TAB', "\t");
+	define('DOKU_TAB', "\t");	// 定义水平制表符常量 · Define the constant of horizontal tabulation character
 if (!defined('DOKU_PLUGIN'))
-	define('DOKU_PLUGIN',DOKU_INC.'lib/plugins/');
+	define('DOKU_PLUGIN',DOKU_INC.'lib/plugins/');	// 定义 DokuWiki 插件文件夹路径 · Define the path of DokuWiki plugin folder
 
 class syntax_plugin_tplt_template extends DokuWiki_Syntax_Plugin {
-    /**
-     * @return string  语法模式选择 · Syntax mode type
-     */
+	/**
+	 * @return string  语法模式选择 · Syntax mode type
+	 */
 	public function getType()
 	{
-	   return 'substition';	// 请勿改成 “container”，否则无法在表格中使用 · Please don't change it to "container" otherwise it cannot be used in tables
+		return 'substition';	// 请勿改成 “container”，否则无法在表格中使用 · Please don't change it to "container" as otherwise it cannot be used in tables
 	}
 	
-    /**
-     * @return string   段落模式选择 · Paragraph type
-     */
+	/**
+	 * @return string   段落模式选择 · Paragraph type
+	 */
 	public function getPType()
 	{
-        return 'normal';
+		return 'normal';	// 正常模式（也就是段内模式） · Normal mode (i.e. in-paragraph mode)
 	}
 	
-    /**
-     * @return int  运行优先级——数字越小优先级越高 · Sort order - Low numbers go before high numbers
-     */
+	/**
+	 * @return int  运行优先级——数字越小优先级越高 · Sort order - low numbers go before high numbers
+	 */
 	public function getSort()
 	{
-		return 319; // 需要在 Doku_Parser_Mode_media（320）前运行 · Should go before Doku_Parser_Mode_media 320
+		return 319; // 需要在 Doku_Parser_Mode_media（320）前运行 · Should go before Doku_Parser_Mode_media (320)
 	}
 	
-    /**
-	 * connectTo
-     * 查找出符合的片段来交给渲染器处理 · Connect lookup pattern to lexer.
-     *
-     * @param string $mode  语义分析模式 · Parser mode
-     */
-    public function connectTo($mode) {
-        $this->Lexer->addSpecialPattern('\{\{tplt>(?:(?:[^\}]*?\{.*?\}\})|.*?)+?\}\}', $mode, 'plugin_tplt_template');
-    }
+	/**
+	 * connectTo($mode)
+	 * 定义符合的片段来交给词法分析器识别 · Connect lookup pattern to lexer.
+	 *
+	 * @param string $mode  语义分析模式 · Parser mode
+	 */
+	public function connectTo($mode) {
+		$this->Lexer->addSpecialPattern('\{\{tplt>(?:(?:[^\}]*?\{.*?\}\})|.*?)+?\}\}', $mode, 'plugin_tplt_template');
+	}
 
 /**
-    public function postConnect() {
-        $this->Lexer->addExitPattern('\}\}', 'plugin_wst');
-    }
+	public function postConnect() {
+		$this->Lexer->addExitPattern('\}\}', 'plugin_wst');
+	}
 **/
-    /**
-	 * handle
-     * 对已匹配的片段进行处理 · Handle matches of the tplt plugin
+
+	/**
+	 * handle($match, $state, $pos, Doku_Handler $handler)
+	 * 对已匹配的片段进行处理 · Handle matches of the tplt plugin
 	 * 
-	 * @version	1.1 (210303)
+	 * @version	1.2 (210303)
 	 * @since	1.0 (210105)
 	 * 
 	 * @author	1. Vitalie Ciubotaru <vitalie@ciubotaru.tk>
 	 * 			2. A135
-     *
-     * @param	string			$match		与插件语法相匹配的片段 · The match of the syntax
-     * @param	int				$state		处理器的状态 · The state of the handler
-     * @param	int				$pos		片段在文档中的位置 · The position in the document
-     * @param	Doku_Handler	$handler	处理器 · The handler
-     * @return	array						交给渲染器处理的数据 · Data for the renderer
-     */
-    public function handle($match, $state, $pos, Doku_Handler $handler){
-		if (empty($match)) return false;
-        $template_arguments = array();	// 存储参数值的数组 · Array for values of arguments
-		$dump = trim(substr($match, 7, -2));
+	 *
+	 * @param	string			$match		与插件语法相匹配的片段 · The match of the syntax
+	 * @param	int				$state		处理器的状态 · The state of the handler
+	 * @param	int				$pos		片段在文档中的位置 · The position in the document
+	 * @param	Doku_Handler	$handler	处理器 · The handler
+	 * @return	array						交给渲染器处理的数据 · Data for the renderer
+	 */
+	public function handle($match, $state, $pos, Doku_Handler $handler){
+		if (empty($match))
+			return false;	// 如果匹配了一个空字符串，则返回 false · Return false if a empty string is matched
+		else
+			return $match;	// 如果不是空串，则直接返回匹配的字符串并传给渲染器 · Return matched string and pass it to the renderer if it is not empty
+				// 注：参数替换等工作交给渲染器函数 render() 处理
+				//  ·
+				// Note: processes like argument replacement will be processed in the renderer function render()
+	}
+
+	/**
+	 * render($mode, Doku_Renderer $renderer, $data)
+	 * 输出 XHTML 或元数据的渲染器 · Render xhtml output or metadata
+	 * 
+	 * @version	1.2 (210105)
+	 * @since	1.0 (210105)
+	 * 
+	 * @author	1. Vitalie Ciubotaru <vitalie@ciubotaru.tk>
+	 * 			2. A135
+	 *
+	 * @param	string			$mode		渲染器模式（此插件支持 XHTML 模式） · Renderer mode (supported modes: xhtml)
+	 * @param	Doku_Renderer	$renderer	渲染器 · The renderer
+	 * @param	array			$data		从 “handler()” 函数返回的数据 · The data from the "handler()" function
+	 * @return	bool						表示渲染工作是否成功 · If rendering was successful.
+	 */
+	public function render($mode, Doku_Renderer $renderer, $data)
+	{
+		if (!$data)
+			return false;	// 如果传入一个空字符串，则返回 false · Return false if the incoming string is empty
+		if (!($mode == 'xhtml' || $mode == 'metadata'))
+			return false;	// 支持 XHTML 和元数据两种模式 · XHTML and metadata modes are supported
+
+		$template_arguments = array();	// 存储参数值的数组 · Array for values of arguments
+		$dump = trim(substr($data, 7, -2));
 			// 去除双花括号、“tplt”关键字及两端的空白字符，以获得模板名称以及各个参数的值
 			//  · 
 			// Remove curly brackets, "tplt" keyword, and space characters at both ends to get template name and value of each argument
-		$dump = preg_replace_callback('/\{\{(((?!(\{\{|\}\})).*?|(?R))*)\}\}/', function($match) {return str_replace('|', '{{!}}', $match[0]);}, $dump);
+		$dump = preg_replace_callback('/\{\{(((?!(\{\{|\}\})).*?|(?R))*)\}\}/', function($data) {return str_replace('|', '{{!}}', $data[0]);}, $dump);
 
 		$dump = $this->getTemplateName($dump, 2, 0);	// 模板名与各参数 · Template name and arguments
-		// 模板名 · template name
-		$templateName = $dump[0];
+		$templateName = $dump[0];	// 模板名 · template name
 
 		if (!$this->recursionCheck($templateName))	// 递归检查 · recursion check
 			return $this->getLang('selfCallingBegin') . $templateName . $this->getLang('selfCallingEnd');
@@ -104,7 +133,7 @@ class syntax_plugin_tplt_template extends DokuWiki_Syntax_Plugin {
 				// 如果声明了参数名，或者以 “=” 开头 · If argument name has been defined or starts with "="
 				if (strpos($value, '=') !== false)
 				{
-					$tmp = explode("=", $value, 2);
+					$tmp = explode('=', $value, 2);
 					$template_arguments[(trim($tmp[0] != '')) ? trim($tmp[0]) : ($key + 1)] = trim($tmp[1]);
 				}
 				// 如果没声明参数名 · If argument name is not defined
@@ -113,46 +142,40 @@ class syntax_plugin_tplt_template extends DokuWiki_Syntax_Plugin {
 			}
 		}
 		$template_arguments = str_replace('{{!}}', '|', $template_arguments);
+			// 将参数值中用于替代竖杠符号的“{{!}}”再替换回来
+			//  ·
+			// Restore the vertical line characters replaced by "{{!}}" in argument values before
 		$template = $this->get_template($templateName);
 		if (!$template) return;
-		$template_text = $this->replaceArgs($template, $template_arguments);
-		return $template_text;
-    }
 
-    /**
-	 * render
-     * 输出 XHTML 或元数据的渲染器 · Render xhtml output or metadata
-	 * 
-	 * @version	1.0 (210105)
-	 * @since	1.0 (210105)
-	 * 
-	 * @author	1. Vitalie Ciubotaru <vitalie@ciubotaru.tk>
-	 * 			2. A135
-     *
-     * @param	string			$mode		渲染器模式（此插件支持 XHTML 模式） · Renderer mode (supported modes: xhtml)
-     * @param	Doku_Renderer	$renderer	渲染器 · The renderer
-     * @param	array			$data		从 “handler()” 函数返回的数据 · The data from the "handler()" function
-     * @return	bool						表示渲染工作是否成功 · If rendering was successful.
-     */
-	public function render($mode, Doku_Renderer $renderer, $data)
-	{
-		if ($mode != 'xhtml')
+		if ($mode == 'xhtml')
 		{
-			return false;
+			/** @var Doku_Renderer_xhtml $renderer */
+			$template_text = $this->replaceArgs($template, $template_arguments);	// 参数值替换过的
+			$instructions = p_get_instructions($template_text);
+			$renderer->nest($instructions);
+/**
+			$rawRendered = '';
+			$rawRendered = $renderer->render_text($template_text, 'xhtml');	// 渲染生成的原始 XHTML 内容 · Raw XHTML code by renderer
+			$renderer->doc .= $this->singleLineHandler($rawRendered);
+				// 如果只有一段文字，则去除两侧的 “<p>” 标签 · Remove "<p>" tags if there is only a single paragraph
+*/
+			return true;
 		}
-		if (!$data)
+		elseif ($mode == 'metadata')
 		{
-			return false;
+			/** @var Doku_Renderer_metadata $renderer */
+			if ($renderer->capture)
+			{
+				foreach ($template_arguments as $value)
+				$renderer->doc .= $renderer->render_text($value, 'metadata');
+			}
+			return true;
 		}
-		$rawRendered = '';
-		$rawRendered = $renderer->render_text($data, 'xhtml');	// 渲染生成的原始 XHTML 内容 · Raw XHTML code by renderer
-		$renderer->doc .= $this->singleLineHandler($rawRendered);
-			// 如果只有一段文字，则去除两侧的 “<p>” 标签 · Remove "<p>" tags if there is only a single paragraph
-        return true;
 	}
 	
 	/**
-	 * get_template
+	 * get_template($name)
 	 * 获取模板内的内容 · Get the data from template
 	 * 
 	 * 默认情况下，模板页面是来自 “$conf['namespace']” 里面所设置的命名空间当中的。
@@ -181,7 +204,7 @@ class syntax_plugin_tplt_template extends DokuWiki_Syntax_Plugin {
 	}
 
 	/**
-	 * replaceArgs
+	 * replaceArgs($template_text, $args)
 	 * 替换模板内的参数 · Replace arguments in template
 	 * 
 	 * @version	1.1 (210303)
@@ -285,7 +308,7 @@ class syntax_plugin_tplt_template extends DokuWiki_Syntax_Plugin {
 	}
 
 	/**
-	 * singleLineHandler
+	 * singleLineHandler($rawRendered)
 	 * 单行 XHTML 处理函数 · Handler of XHTML code with only a single paragraph
 	 * 
 	 * 如果只有一行文字，则去除两侧的 “<p>……</p>” 标签，以自动适应行内模式
@@ -330,7 +353,7 @@ class syntax_plugin_tplt_template extends DokuWiki_Syntax_Plugin {
 	}
 
 	/** 
-	 * recursionCheck
+	 * recursionCheck($templateName)
 	 * 模板递归检查函数 · Template recursion check
 	 * 
 	 * 检查模板是否直接或间接地调用了自身，来防止无限递归
@@ -390,7 +413,7 @@ class syntax_plugin_tplt_template extends DokuWiki_Syntax_Plugin {
 	}
 
 	/** 
-	 * getTemplateName
+	 * getTemplateName($match, $mode, $dumpMode)
 	 * 获得模板的名称 · Get template name
 	 * 
 	 * @version	1.0 (210105)
