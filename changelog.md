@@ -3,10 +3,12 @@
 *July 6, 2021 · 2021 年 7 月 6 日*
 
 * Introduce text range correction function of section edit button
+* Adjust the parsing mechanism of the parameter placeholders `{{{...}}}` inside the double curly braces for file inserting syntax `{{...}}` (ie `{{{{{...}}}}}`) 
 
 ---
 
 * 加入章节编辑按钮文本范围修正功能
+* 调整了参数占位符 `{{{...}}}` 位于插入文件的双花括号 `{{...}}` 内部（即 `{{{{{...}}}}}`）时的识别机制
 
 ## 2.0.1, beta (210504)
 *May 4, 2021 · 2021 年 5 月 4 日*
