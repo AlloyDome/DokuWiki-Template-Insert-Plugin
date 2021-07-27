@@ -17,7 +17,6 @@ if(!defined('DOKU_INC'))
 use dokuwiki\Parsing\Parser;
 
 trait plugin_tplt_utils {
-
 	private function getPatterns($parserMode) {
 		switch ($parserMode) {
 			case 'rawWiki': {
@@ -127,9 +126,9 @@ trait plugin_tplt_utils {
 
 	/**
 	 * replaceArgsAndTplt(&$instructions, $incomingArgs, &$pageStack = array())
-	 * 替换文本中的参数和模板
+	 * 替换文本中的参数、模板或解析器函数
 	 * 
-	 * @version	2.1.0, beta (210706)
+	 * @version	2.2.0, beta (------)
 	 * @since	2.1.0, beta (210706)
 	 * 
 	 * @author	AlloyDome
@@ -231,7 +230,8 @@ trait plugin_tplt_utils {
 								for ($i = $startOrderNo + 1; $i <= $key - 1; $i++) {
 									$matechedTpltNameAndArgs .= $instructions[$i]['text'];
 								}
-								$tpltText = $this->tpltRendener($matechedTpltNameAndArgs, $incomingArgs, $pageStack);
+								$tpltText = $this->tpltAndPfRenderer($matechedTpltNameAndArgs, $incomingArgs, $pageStack);
+
 								for ($i = $startOrderNo; $i <= $key - 1; $i++) {
 									$instructions[$i]['text'] = '';
 								}
@@ -526,23 +526,23 @@ trait plugin_tplt_utils {
 	}
 
 	// ----------------------------------------------------------------
-	
+
 	/**
-	 * tpltRendener($rawText, $incomingArgs, &$pageStack)
+	 * tpltAndPfRenderer($rawText, $incomingArgs, &$pageStack)
 	 * 输出模板内容文本的渲染器 · Renderer of template text
 	 * 
-	 * @version	2.0.0, beta (210429)
-	 * @since	1.0, beta (210105)
+	 * @version	2.2.0, beta (------)
+	 * @since	2.2.0, beta (------)
 	 * 
 	 * @author	1. Vitalie Ciubotaru <vitalie@ciubotaru.tk>
 	 * 			2. Alloydome
 	 *
 	 * @param	string	$rawText		未处理的模板调用语法，包括模板名和参数 · Unprocessed template calling syntax, including template name and arguments
 	 * @param	array	$incomingArgs	传入参数 · Incoming arguments
-	 * @param	array	&$ageStack		页面堆栈 · Stack of pages
+	 * @param	array	&$pageStack		页面堆栈 · Stack of pages
 	 * @return	string					替换过参数的模板内容文本 · Argument replaced template text
 	 */
-	private function tpltRendener($rawText, $incomingArgs, &$pageStack) {
+	private function tpltAndPfRenderer($rawText, $incomingArgs, &$pageStack) {
 		if (!$rawText)
 			return '';	// 如果传入一个空字符串，则返回 false · Return false if the incoming string is empty
 
@@ -556,9 +556,70 @@ trait plugin_tplt_utils {
 			$templateNameAndArgs[$fragmentKey] = trim($templateNameAndArgs[$fragmentKey]);
 		}
 
-		$templateNameDump = $templateNameAndArgs[0];	// 模板名 · template name
+		if (substr(trim($templateNameAndArgs[0]), 0, 1) == '#') {
+			$renderedText = $this->pfRenderer($templateNameAndArgs, $incomingArgs, $pageStack);
+		} else {
+			$renderedText = $this->tpltRenderer($templateNameAndArgs, $incomingArgs, $pageStack);
+		}
+		return $renderedText;
+	}
+
+	// ----------------------------------------------------------------
+
+	/**
+	 * pfRenderer($templateNameAndArgs, $incomingArgs, &$pageStack)
+	 * 输出解析器函数运行结果的渲染器 · Renderer of paresr functions
+	 * 
+	 * @version	2.2.0, beta (------)
+	 * @since	2.2.0, beta (------)
+	 * 
+	 * @author	Alloydome
+	 *
+	 * @param	string	$templateNameAndArgs	解析器函数名和参数 · parser function name and arguments
+	 * @param	array	$incomingArgs			传入参数 · Incoming arguments
+	 * @param	array	&$pageStack				页面堆栈 · Stack of pages
+	 * @return	string							替换过参数的模板内容文本 · Argument replaced template text
+	 */
+	private function pfRenderer($templateNameAndArgs, $incomingArgs, &$pageStack) {
+		$pfName = substr(trim($templateNameAndArgs[0]), 1);	// 解析器函数名 · template name
 		$argDump = array_slice($templateNameAndArgs, 1);
 
+		$pfArgs = array();
+		if ($argDump) {
+			foreach ($argDump as $value) {
+				$pfArgs[] = trim($value);
+			}
+		}
+		$pfArgs = str_replace('~~!~~', '|', $pfArgs);
+
+		if (array_key_exists($pfName, pfList::$pfClassList)) {
+			return pfList::$pfClassList[$pfName]->renderer($pfArgs, $incomingArgs, $pageStack);
+		} else {
+			return ' (' . $pfName. '?) ';
+		}
+		
+	}
+
+	// ----------------------------------------------------------------
+
+	/**
+	 * tpltRenderer($templateNameAndArgs, $incomingArgs, &$pageStack)
+	 * 输出模板内容文本的渲染器 · Renderer of template text
+	 * 
+	 * @version	2.2.0, beta (------)
+	 * @since	2.2.0, beta (------)
+	 * 
+	 * @author	1. Vitalie Ciubotaru <vitalie@ciubotaru.tk>
+	 * 			2. Alloydome
+	 *
+	 * @param	string	$templateNameAndArgs	模板名和参数 · template name and arguments
+	 * @param	array	$incomingArgs			传入参数 · Incoming arguments
+	 * @param	array	&$pageStack				页面堆栈 · Stack of pages
+	 * @return	string							替换过参数的模板内容文本 · Argument replaced template text
+	 */
+	private function tpltRenderer($templateNameAndArgs, $incomingArgs, &$pageStack) {
+		$templateNameDump = $templateNameAndArgs[0];	// 模板名 · template name
+		$argDump = array_slice($templateNameAndArgs, 1);
 		$template_arguments = array();	// 存储参数值的数组 · Array for values of arguments
 		if ($argDump)
 		{
