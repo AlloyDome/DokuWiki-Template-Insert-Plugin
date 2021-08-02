@@ -18,7 +18,6 @@ require_once(DOKU_PLUGIN . 'tplt/inc/utils.php');
 require_once(DOKU_PLUGIN . 'tplt/inc/strposMap.php');
 
 class action_plugin_tplt_renderercontentpostprocess extends DokuWiki_Action_Plugin {
-	use inc\plugin_tplt_utils;
 
 	static private $secEditPattern = SEC_EDIT_PATTERN;
 	private $strposMap;
