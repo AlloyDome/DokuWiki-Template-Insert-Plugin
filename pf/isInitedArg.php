@@ -9,8 +9,12 @@
  * @version 2.2.0, beta (------)
  */
 
+use dokuwiki\lib\plugins\tplt\inc as inc;
+
 if(!defined('DOKU_INC'))
 	die();	// 必须在 Dokuwiki 下运行 · Must be run within Dokuwiki
+
+require_once(DOKU_PLUGIN . 'tplt/inc/utils.php');
 
 class tplt_parserfunc_isInitedArg {
 	public function renderer($pfArgs, $incomingArgs, &$pageStack) {
@@ -18,9 +22,9 @@ class tplt_parserfunc_isInitedArg {
 			return '';
 		} else {
 			if(array_key_exists($pfArgs[0], $incomingArgs)) {
-				return (array_key_exists(1, $pfArgs)) ? $pfArgs[1] : '';
+				return (array_key_exists(1, $pfArgs)) ? inc\tpltMainHandler($pfArgs[1], $incomingArgs, $pageStack) : '';
 			} else {
-				return (array_key_exists(2, $pfArgs)) ? $pfArgs[2] : '';
+				return (array_key_exists(2, $pfArgs)) ? inc\tpltMainHandler($pfArgs[2], $incomingArgs, $pageStack) : '';
 			}
 		}
 	}
