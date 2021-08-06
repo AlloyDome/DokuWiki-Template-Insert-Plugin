@@ -26,7 +26,8 @@ function getPatterns($parserMode) {
 					'name' => 'nowiki',
 					'isCouple' => true,
 					'allowSelfNest' => false,
-					'allowEnterFrom' => array('tplt'),
+					'allowEnterFromRoot' => true,
+					'allowEnterFrom' => array('tplt', 'arg'),
 					'patterns' => array(
 						array('start' => '%%', 							'end' => '%%', 			'isPcre' => false),
 						array('start' => '<nowiki>', 					'end' => '</nowiki>', 	'isPcre' => false),
@@ -42,6 +43,7 @@ function getPatterns($parserMode) {
 					'name' => 'tplt',
 					'isCouple' => true,
 					'allowSelfNest' => true,
+					'allowEnterFromRoot' => true,
 					'allowEnterFrom' => array(),
 					'patterns' => array(
 						array('start' => '[|', 		'end' => '|]', 				'isPcre' => false)
@@ -51,11 +53,22 @@ function getPatterns($parserMode) {
 					'name' => 'arg',
 					'isCouple' => true,
 					'allowSelfNest' => false,
+					'allowEnterFromRoot' => true,
 					'allowEnterFrom' => array(),
 					'patterns' => array(
 						array('start' => '/{{{(?!{)/', 	'end' => '/(?<!})}}}/', 'isPcre' => true)
 					)
 				),
+//				array(
+//					'name' => 'quoted',
+//					'isCouple' => true,
+//					'allowSelfNest' => false,
+//					'allowEnterFromRoot' => false,
+//					'allowEnterFrom' => array('tplt' /*, 'arg' */),
+//					'patterns' => array(
+//						array('start' => '/"(?!")/', 	'end' => '/"(?!")/', 	'isPcre' => true)
+//					)
+//				),
 			);
 		}
 		case 'tpltSyntax': {
@@ -64,7 +77,8 @@ function getPatterns($parserMode) {
 					'name' => 'nowiki',
 					'isCouple' => true,
 					'allowSelfNest' => false,
-					'allowEnterFrom' => array('tplt'),
+					'allowEnterFromRoot' => true,
+					'allowEnterFrom' => array('tplt', 'quoted'),
 					'patterns' => array(
 						array('start' => '%%', 							'end' => '%%', 			'isPcre' => false),
 						array('start' => '<nowiki>', 					'end' => '</nowiki>', 	'isPcre' => false),
@@ -79,6 +93,7 @@ function getPatterns($parserMode) {
 				array(
 					'name' => 'delimiter',
 					'isCouple' => false,
+					'allowEnterFromRoot' => true,
 					'allowEnterFrom' => array(),
 					'patterns' => array(
 						array('selfClosing' => '|', 'isPcre' => false)
@@ -88,11 +103,99 @@ function getPatterns($parserMode) {
 					'name' => 'tplt',
 					'isCouple' => true,
 					'allowSelfNest' => true,
-					'allowEnterFrom' => array(),
+					'allowEnterFromRoot' => true,
+					'allowEnterFrom' => array('quoted'),
 					'patterns' => array(
 						array('start' => '[|', 		'end' => '|]', 				'isPcre' => false)
 					)
-				)
+				),
+				array(
+					'name' => 'quoted',
+					'isCouple' => true,
+					'allowSelfNest' => false,
+					'allowEnterFromRoot' => true,
+					'allowEnterFrom' => array(),
+					'patterns' => array(
+						array('start' => '/"(?!")/', 	'end' => '/"(?!")/', 	'isPcre' => true)
+					)
+				),
+			);
+		}
+		case 'argValueSyntax': {
+			return array(
+				array(
+					'name' => 'nowiki',
+					'isCouple' => true,
+					'allowSelfNest' => false,
+					'allowEnterFromRoot' => true,
+					'allowEnterFrom' => array('tplt', 'quoted'),
+					'patterns' => array(
+						array('start' => '%%', 							'end' => '%%', 			'isPcre' => false),
+						array('start' => '<nowiki>', 					'end' => '</nowiki>', 	'isPcre' => false),
+						array('start' => '<html>', 						'end' => '</html>', 	'isPcre' => false),
+						array('start' => '<HTML>', 						'end' => '</HTML>', 	'isPcre' => false),
+						array('start' => '<php>', 						'end' => '</php>', 		'isPcre' => false),
+						array('start' => '<PHP>', 						'end' => '</PHP>', 		'isPcre' => false),
+						array('start' => '/<code\b(?=.*<\/code>)/s', 	'end' => '/<\/code>/', 	'isPcre' => true),
+						array('start' => '/<file\b(?=.*<\/file>)/s', 	'end' => '/<\/file>/', 	'isPcre' => true),
+					)
+				),
+				array(
+					'name' => 'tplt',
+					'isCouple' => true,
+					'allowSelfNest' => true,
+					'allowEnterFromRoot' => true,
+					'allowEnterFrom' => array('quoted'),
+					'patterns' => array(
+						array('start' => '[|', 		'end' => '|]', 				'isPcre' => false)
+					)
+				),
+				array(
+					'name' => 'quoted',
+					'isCouple' => true,
+					'allowSelfNest' => false,
+					'allowEnterFromRoot' => true,
+					'allowEnterFrom' => array(),
+					'patterns' => array(
+						array('start' => '/"(?!")/', 	'end' => '/"(?!")/', 	'isPcre' => true)
+					)
+				),
+				array(
+					'name' => 'quotemark',
+					'isCouple' => false,
+					'allowEnterFromRoot' => true,
+					'allowEnterFrom' => array('quoted'),
+					'patterns' => array(
+						array('selfClosing' => '""', 	'isPcre' => false)
+					)
+				),
+				array(
+					'name' => 'delimiterAlt',
+					'isCouple' => false,
+					'allowEnterFromRoot' => true,
+					'allowEnterFrom' => array(),
+					'patterns' => array(
+						array('selfClosing' => '~~!~~', 'isPcre' => false)
+					)
+				),
+				array(
+					'name' => 'breakrowAlt',
+					'isCouple' => false,
+					'allowEnterFromRoot' => true,
+					'allowEnterFrom' => array(),
+					'patterns' => array(
+						array('selfClosing' => '~~br~~', 'isPcre' => false)
+					)
+				),
+				array(
+					'name' => 'spaceAlt',
+					'isCouple' => false,
+					'allowEnterFromRoot' => true,
+					'allowEnterFrom' => array(),
+					'patterns' => array(
+						array('selfClosing' => '~~sp~~', 'isPcre' => false)
+					)
+				),
 			);
 		}
 		default: {
@@ -267,12 +370,13 @@ function replaceArgsAndTplt(&$instructions, $incomingArgs, &$pageStack = array()
 	}
 }
 
-function textMerge($instructions) {
+function textMerge($instructions /* , $trim = true */) {
 	$text = '';
 	foreach ($instructions as $instruction) {
 		$text .= $instruction['text'];
 	}
-	return trim($text); // ?
+	return $text;
+	// return $trim ? trim($text) : $text; // ?
 }
 
 // ----------------------------------------------------------------
@@ -440,13 +544,16 @@ function findFirstPosOfPatterns($text, $patternArray, $nestLevel, $currentNest, 
 				// 没有位于自身嵌套内（可能位于其他嵌套内部），则匹配开始标记
 				if ($currentNest === false) {
 					// 没有位于任何嵌套内
-					list($patternPos, $matchedText) = patternMatch($text, $pattern[$startOrSelfclosing], $pattern['isPcre']);
-					if ($patternPos !== false) {
-						$firstPosOfPatterns[$patternPos] = array(
-							'name' => $patternGroupName, 
-							'orderNo' => $orderNo, 
-							'startOrEnd' => $startOrSelfclosing, 
-							'matchedPattern' => $matchedText);
+					if ($patternGroup['allowEnterFromRoot'] == true) {
+						// 如果该标识允许在不处于任何嵌套的情况下存在，则匹配开始标记，否则什么也不做
+						list($patternPos, $matchedText) = patternMatch($text, $pattern[$startOrSelfclosing], $pattern['isPcre']);
+						if ($patternPos !== false) {
+							$firstPosOfPatterns[$patternPos] = array(
+								'name' => $patternGroupName, 
+								'orderNo' => $orderNo, 
+								'startOrEnd' => $startOrSelfclosing, 
+								'matchedPattern' => $matchedText);
+						}
 					}
 				} else {
 					// 位于其他嵌套内
@@ -592,10 +699,9 @@ function pfRenderer($templateNameAndArgs, $incomingArgs, &$pageStack) {
 	$pfArgs = array();
 	if ($argDump) {
 		foreach ($argDump as $value) {
-			$pfArgs[] = trim($value);
+			$pfArgs[] = removeAltPatternInArgValue(trim($value));
 		}
 	}
-	$pfArgs = str_replace('~~!~~', '|', $pfArgs);
 
 	if (array_key_exists($pfName, pfList::$pfClassList)) {
 		return pfList::$pfClassList[$pfName]->renderer($pfArgs, $incomingArgs, $pageStack);
@@ -633,17 +739,18 @@ function tpltRenderer($templateNameAndArgs, $incomingArgs, &$pageStack) {
 			if (strpos($value, '=') !== false)
 			{
 				$tmp = explode('=', $value, 2);
-				$template_arguments[(trim($tmp[0] != '')) ? trim($tmp[0]) : ($key + 1)] = trim($tmp[1]);
+				$template_arguments[(trim($tmp[0] != '')) ? trim($tmp[0]) : ($key + 1)] = 
+					removeAltPatternInArgValue(trim($tmp[1]));
+						// 将参数值中用于替代部分特殊符号的“~~...~~”再替换回来
+						//  ·
+						// Restore the some spacial symbols replaced by "~~...~~" in argument values before
 			}
 			// 如果没声明参数名 · If argument name is not defined
 			// 则编号，从 1 开始，不是从 0 开始 · Start from 1, not 0
 			else $template_arguments[$key + 1] = trim($value);
 		}
 	}
-	$template_arguments = str_replace('~~!~~', '|', $template_arguments);
-		// 将参数值中用于替代竖杠符号的“~~!~~”再替换回来
-		//  ·
-		// Restore the vertical line characters replaced by "~~!~~" in argument values before
+
 	unset($argDump);
 	$argNames = array_keys($template_arguments);
 	foreach ($argNames as $argName) {
@@ -704,6 +811,51 @@ function getTemplateNameAndArgs($match)
 	} else {
 		return $templateNameAndArgs;
 	}
+}
+
+/**
+ * removeAltPatternInArgValue($str)
+ * 将参数值中用于替代部分特殊符号的“~~...~~”再替换回来 · Restore the some spacial symbols replaced by "~~...~~" in argument values before
+ * 
+ * @version	2.2.0, beta (------)
+ * @since	2.2.0, beta (------)
+ * 
+ * @author	Alloydome
+ *
+ * @param	string	$str	含“~~...~~”的字符串 · String including "~~...~~"
+ * @return	string			恢复特殊符号的字符串 · String with restored spacial symbols
+ */
+function removeAltPatternInArgValue($str) {
+	$instructions = tpltParser($str, 'argValueSyntax');
+	foreach ($instructions as $key => $instruction) {
+		switch ($instruction['type']) {
+			case 'delimiterAlt' : {
+				$instructions[$key]['text'] = '|';
+					// 将参数值中用于替代竖杠符号的“~~!~~”再替换回来
+					//  ·
+					// Restore the vertical line characters replaced by "~~!~~" in argument values before
+					break;
+			}
+			case 'breakrowAlt':{
+				$instructions[$key]['text'] = "\n";
+				break;
+			}
+			case 'spaceAlt':{
+				$instructions[$key]['text'] = ' ';
+				break;
+			}
+			case 'quoted' : {
+				$instructions[$key]['text'] = '';
+				break;
+			}
+			case 'quotemark' : {
+				$instructions[$key]['text'] = '"';
+				break;
+			}
+		}
+	}
+
+	return textMerge($instructions);
 }
 
 /**
