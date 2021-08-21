@@ -56,7 +56,7 @@ function getPatterns($parserMode) {
 					'allowEnterFromRoot' => true,
 					'allowEnterFrom' => array(),
 					'patterns' => array(
-						array('start' => '/{{{(?!{)/', 	'end' => '/(?<!})}}}/', 'isPcre' => true)
+						array('start' => '/\{\{\{(?!\{)/', 	'end' => '/(?<!\})\}\}\}/', 'isPcre' => true)
 					)
 				),
 //				array(
