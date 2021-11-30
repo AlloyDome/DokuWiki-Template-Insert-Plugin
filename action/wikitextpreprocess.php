@@ -16,9 +16,10 @@ if(!defined('DOKU_INC'))
 
 require_once(DOKU_PLUGIN . 'tplt/inc/utils.php');
 require_once(DOKU_PLUGIN . 'tplt/inc/strposMap.php');
+require_once(DOKU_PLUGIN . 'tplt/inc/pfList.php');
 
 class action_plugin_tplt_wikitextpreprocess extends DokuWiki_Action_Plugin {
-	use inc\plugin_tplt_utils;	// 见 ../inc 文件夹内的 utils.php · see utils.php in ../inc folder
+	// use inc\plugin_tplt_utils;	// 见 ../inc 文件夹内的 utils.php · see utils.php in ../inc folder
 
 	/**
 	 * register(Doku_Event_Handler $controller)
@@ -46,11 +47,16 @@ class action_plugin_tplt_wikitextpreprocess extends DokuWiki_Action_Plugin {
 	 * @param	mixed		$param	相关参数（暂时无用） · Parameters (useless now)
 	 */
 	public function tpltTextReplace(Doku_Event &$event, $param) {
+
+		inc\pfList::pfLoad();
+
+		$this->getConf('namespace');
+
 		$text = $event->data;	// 原始 Wiki 代码
 		$pageStack = array();	// 页面堆栈（注：根页面不应填入页面堆栈中）
 
 		$strposMap = false;
-		$text = $this->tpltMainHandler($text, array(), $pageStack, $strposMap);
+		$text = inc\tpltMainHandler($text, array(), $pageStack, $strposMap);
 
 		inc\plugin_tplt_strposMap::$strposMap = $strposMap; // 存储字符位置映射表
 

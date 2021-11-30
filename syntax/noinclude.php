@@ -3,7 +3,8 @@
  * DokuWiki Plugin tplt (Syntax Component)
  *
  * @license GPL 2 http://www.gnu.org/licenses/gpl-2.0.html
- * @author  Vitalie Ciubotaru <vitalie@ciubotaru.tk>
+ * @author  1. Vitalie Ciubotaru <vitalie@ciubotaru.tk>
+ * 			2. AlloyDome
  */
 
 // must be run within Dokuwiki
@@ -38,7 +39,7 @@ class syntax_plugin_tplt_noinclude extends DokuWiki_Syntax_Plugin {
      * @param string $mode Parser mode
      */
     public function connectTo($mode) {
-        $this->Lexer->addSpecialPattern('<noinclude>|</noinclude>', $mode, 'plugin_wst_noinclude');
+        $this->Lexer->addSpecialPattern('<noinclude>|</noinclude>', $mode, 'plugin_tplt_noinclude');
 //        $this->Lexer->addEntryPattern('\{\{[W|w][S|s][T|t]:(?=.*\}\})', $mode, 'plugin_wst');
     }
 

@@ -1,4 +1,13 @@
 # Version History · 版本记录
+## 2.2.0, beta (211130)
+*Nov 30, 2021 · 2021 年 11 月 30 日*
+
+* Introduce several parser functions
+
+---
+
+* 新增几个解析器函数
+
 ## 2.1.0, beta (210706)
 *July 6, 2021 · 2021 年 7 月 6 日*
 
