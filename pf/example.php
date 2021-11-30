@@ -5,8 +5,8 @@
  * @license	GPL 2 http://www.gnu.org/licenses/gpl-2.0.html
  * @author	AlloyDome
  * 
- * @since	2.2.0, beta (------)
- * @version 2.2.0, beta (------)
+ * @since	2.2.0, beta (211130)
+ * @version 2.2.0, beta (211130)
  */
 
 if(!defined('DOKU_INC'))
