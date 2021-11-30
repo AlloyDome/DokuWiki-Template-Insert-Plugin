@@ -5,8 +5,8 @@
  * @license	GPL 2 http://www.gnu.org/licenses/gpl-2.0.html
  * @author	AlloyDome
  * 
- * @since	2.2.0, beta (------)
- * @version 2.2.0, beta (------)
+ * @since	2.2.0, beta (211130)
+ * @version 2.2.0, beta (211130)
  */
 
 namespace dokuwiki\lib\plugins\tplt\inc;
@@ -69,6 +69,10 @@ function getPatterns($parserMode) {
 //						array('start' => '/"(?!")/', 	'end' => '/"(?!")/', 	'isPcre' => true)
 //					)
 //				),
+				/*
+					FIXME:	这一部分可能应当启用，因为“[| ... |]”内双引号起无格式文本的作用，因此判断双引号在“[| ... |]”
+							内的分布情况可以避免将由双引号包围的“|]”误识别为结束标识。
+				*/
 			);
 		}
 		case 'tpltSyntax': {
@@ -90,6 +94,12 @@ function getPatterns($parserMode) {
 						array('start' => '/<file\b(?=.*<\/file>)/s', 	'end' => '/<\/file>/', 	'isPcre' => true),
 					)
 				),
+				/*
+					FIXME:	nowiki 这部分在“[| ... |]”内部可能不需要，因为参数值可能会出现一半的 nowiki 标记，例如
+							“[|example|123%%|%%456|]”，两个参数值分别是“123%%”和“%%456”，中间的竖线还是起作用的。
+							如果不想让竖线起作用，应该使用双引号包围，也就是说，在调用模板的部分，也就是“[| ... |]”
+							内，起无格式文本作用的应该是双引号，而不是类似“%% ... %%”的标记。
+				*/
 				array(
 					'name' => 'delimiter',
 					'isCouple' => false,
@@ -196,6 +206,15 @@ function getPatterns($parserMode) {
 						array('selfClosing' => '~~sp~~', 'isPcre' => false)
 					)
 				),
+				array(
+					'name' => 'tildeAlt',
+					'isCouple' => false,
+					'allowEnterFromRoot' => true,
+					'allowEnterFrom' => array(),
+					'patterns' => array(
+						array('selfClosing' => '~~tilde~~', 'isPcre' => false)
+					)
+				),
 			);
 		}
 		default: {
@@ -236,14 +255,14 @@ function tpltMainHandler($text, $incomingArgs = array(), &$pageStack = array(), 
  * replaceArgsAndTplt(&$instructions, $incomingArgs, &$pageStack = array())
  * 替换文本中的参数、模板或解析器函数
  * 
- * @version	2.2.0, beta (------)
+ * @version	2.2.0, beta (211130)
  * @since	2.1.0, beta (210706)
  * 
  * @author	AlloyDome
  * 
  */
 function replaceArgsAndTplt(&$instructions, $incomingArgs, &$pageStack = array()) {
-	// TODO: 此函数内代码十分混乱，有待优化
+	// XXX:	此函数内代码十分混乱，有待优化
 	if (empty($pageStack)) {
 		$isRootPage = true;
 	} else {
@@ -370,7 +389,7 @@ function replaceArgsAndTplt(&$instructions, $incomingArgs, &$pageStack = array()
 	}
 }
 
-function textMerge($instructions /* , $trim = true */) {
+function textMerge($instructions /* , $trim = true */ ) {
 	$text = '';
 	foreach ($instructions as $instruction) {
 		$text .= $instruction['text'];
@@ -458,11 +477,11 @@ function tpltParser($text, $parserMode) {
 }
 
 /**
- * tpltParser($text)
+ * findFirstPosOfPatterns($text, $patternArray, $nestLevel, $currentNest, $currentNestPatternOdr)
  * 寻找各标识第一次出现的位置 · Find the first positions of patterns
  * 
- * @version	2.0.0, beta (210429)
- * @since	2.0.0, beta (210429)
+ * @version	2.2.0, beta (211130)
+ * @since	2.2.0, beta (211130)
  * 
  * @author	AlloyDome
  * 
@@ -473,102 +492,103 @@ function tpltParser($text, $parserMode) {
  * @return	array						各标识第一次出现的位置 · The first positions of patterns
  */
 function findFirstPosOfPatterns($text, $patternArray, $nestLevel, $currentNest, $currentNestPatternOdr) {
-	$outsideNest = outsideNestDetect($nestLevel);
-
 	$firstPosOfPatterns = array();
+
+	// ↓ 遍历各个标识类型
 	foreach ($patternArray as $patternGroup) {
-		$patternGroupName = $patternGroup['name'];
-		$isCouple = $patternGroup['isCouple'];
-		$allowSelfNest = ($isCouple == true) ? $patternGroup['allowSelfNest'] : false;
+		$patternGroupName = $patternGroup['name'];	// 标识名称
+		$isCouple = $patternGroup['isCouple'];	// 标识是否成对
 
-		$startOrSelfclosing = ($isCouple == true) ? 'start' : 'selfClosing';
+		// ↓ 判断是否允许自嵌套
+		if ($isCouple != true) {
+			$allowSelfNest = false; // 自关闭标识不存在嵌套
+		} else {
+			$allowSelfNest = $patternGroup['allowSelfNest'];	// 否则按实际规定
+		}
 
+		// ↓ 遍历当前标识类型里的各个标识字符串
 		foreach ($patternGroup['patterns'] as $orderNo => $pattern) {
-			if ($currentNest == $patternGroupName) {
-				// 位于自身嵌套内
-				if ($allowSelfNest == false) {
-					// 不允许自嵌套
-					if ($orderNo == $currentNestPatternOdr) {
-						// 位于自身嵌套内且开始标记为当前所循环到的标记，则只匹配其对应的结束标记，否则什么也不做
-						list($patternPos, $matchedText) = patternMatch($text, $pattern['end'], $pattern['isPcre']);
-						if ($patternPos !== false) {
-							$firstPosOfPatterns[$patternPos] = array(
-								'name' => $patternGroupName, 
-								'orderNo' => $orderNo, 
-								'startOrEnd' => 'end', 
-								'matchedPattern' => $matchedText);
+
+			// ↓ 允许匹配的标识开闭类型
+			$allowMatch = array(
+				'start' => false,	// 也兼做自关闭标识的允许匹配标识
+				'end' => false
+			);
+
+			// ↓ 判断哪些开闭类型的标识字符串可以被匹配
+			if ($currentNest === false) {						// 1. 没有位于任何嵌套内
+				if ($patternGroup['allowEnterFromRoot'] == true) {	// 允许从根部进入
+					$allowMatch['start'] = true;						// 则匹配开始标记
+				}
+			} else {											// 2. 位于嵌套内
+				if ($currentNest == $patternGroupName) {			// 2.1. 位于自身嵌套内
+					if (
+						$allowSelfNest == false &&
+						$orderNo == $currentNestPatternOdr
+					) {													// 2.1.1. 不允许自嵌套，且位于自身嵌套内且开始标记为当前所循环到的标记
+						$allowMatch['end'] = true;							// 则只匹配其对应的结束标记，否则什么也不做
+					} else {											// 2.1.2. 允许自嵌套
+						if ($orderNo == $currentNestPatternOdr) {			// 2.1.2.1 位于自身嵌套内且开始标记为当前所循环到的标记
+							$allowMatch['start'] = true;						// 则正常匹配开始与结束标记
+							$allowMatch['end'] = true;
+						} else {											// 2.1.2.2 位于自身嵌套内但开始标记不是当前所循环到的标记
+							$allowMatch['start'] = true;						// 则只匹配其对应的开始标记，否则什么也不做
 						}
+					}
+				} elseif (
+					!empty($patternGroup['allowEnterFrom']) && 
+					in_array($currentNest, $patternGroup['allowEnterFrom'])
+				) {													// 2.2. 位于其他嵌套内，且该标识允许包含在上一级嵌套内
+					$allowMatch['start'] = true;						// 则匹配开始标记，否则什么也不做
+				}
+			}
+
+			$matchedList = array('start' => array(false, false), 'end' => array(false, false));
+				// ↑ 匹配到的标识出现的位置以及匹配的字符串
+			$startOrSelfclosing = ($isCouple == true) ? 'start' : 'selfClosing';
+
+			// ↓ 进行匹配
+			if ($allowMatch['start'] == true) {
+				$matchedList['start'] = patternMatch($text, $pattern[$startOrSelfclosing], $pattern['isPcre']);
+			}
+			if ($allowMatch['end'] == true) {
+				$matchedList['end'] = patternMatch($text, $pattern['end'], $pattern['isPcre']);
+			}
+
+			$startOrEnd = false;	// 对于同时匹配了开始和结束两种标记的情形，最终采用的结果
+			
+			// ↓ 对于同时匹配了开始标识和结束标识情况的处理
+			if ($matchedList['start'][0] !== false) {
+				if ($matchedList['end'][0] !== false) {	// 开始标识和结束标识都匹配到了
+					if ($matchedList['end'][0] <= $matchedList['start'][0]) {
+						$startOrEnd = 'end';	// 如果结束标识在开始的前面，先考虑结束标识，且如果两者出现位置相同，优先考虑结束标识，防止无法自关闭
+					} else {
+						$startOrEnd = 'start';
 					}
 				} else {
-					// 允许自嵌套，正常匹配开始与结束标记
-					if ($orderNo == $currentNestPatternOdr) {
-						// 位于自身嵌套内且开始标记为当前所循环到的标记，正常匹配开始与结束标记
-						list($patternPos1, $matchedText1) = patternMatch($text, $pattern[$startOrSelfclosing], $pattern['isPcre']);
-						list($patternPos2, $matchedText2) = patternMatch($text, $pattern['end'], $pattern['isPcre']);
-						// 注：这里用了穷举的方法，可能会有更好的写法
-						if ($patternPos1 === false && $patternPos2 === false) {
-							$patternPos = false;
-						} elseif ($patternPos1 === false && $patternPos2 !== false) {
-							$patternPos = $patternPos2;
-							$matchedText = $matchedText2;
-							$startOrEnd = 'end';
-						} elseif ($patternPos1 !== false && $patternPos2 === false) {
-							$patternPos = $patternPos1;
-							$matchedText = $matchedText1;
-							$startOrEnd = $startOrSelfclosing;
-						} else {
-							$patternPos = min($patternPos1, $patternPos2);
-							$matchedText = ($patternPos2 <= $patternPos1) ? $matchedText2 : $matchedText1;
-							$startOrEnd = ($patternPos2 <= $patternPos1) ? 'end' : $startOrSelfclosing;
-						}
-						if ($patternPos !== false) {
-							$firstPosOfPatterns[$patternPos] = array(
-								'name' => $patternGroupName, 
-								'orderNo' => $orderNo, 
-								'startOrEnd' => $startOrEnd, 
-								'matchedPattern' => $matchedText);
-						}
-					} else {
-						// 位于自身嵌套内但开始标记不是当前所循环到的标记，只匹配其开始标记
-						list($patternPos, $matchedText) = patternMatch($text, $pattern[$startOrSelfclosing], $pattern['isPcre']);
-						if ($patternPos !== false) {
-							$firstPosOfPatterns[$patternPos] = array(
-								'name' => $patternGroupName, 
-								'orderNo' => $orderNo, 
-								'startOrEnd' => $startOrSelfclosing, 
-								'matchedPattern' => $matchedText);
-						}
-					}
+					$startOrEnd = 'start';	// 匹配到了开始标识（或自关闭标识）
 				}
 			} else {
-				// 没有位于自身嵌套内（可能位于其他嵌套内部），则匹配开始标记
-				if ($currentNest === false) {
-					// 没有位于任何嵌套内
-					if ($patternGroup['allowEnterFromRoot'] == true) {
-						// 如果该标识允许在不处于任何嵌套的情况下存在，则匹配开始标记，否则什么也不做
-						list($patternPos, $matchedText) = patternMatch($text, $pattern[$startOrSelfclosing], $pattern['isPcre']);
-						if ($patternPos !== false) {
-							$firstPosOfPatterns[$patternPos] = array(
-								'name' => $patternGroupName, 
-								'orderNo' => $orderNo, 
-								'startOrEnd' => $startOrSelfclosing, 
-								'matchedPattern' => $matchedText);
-						}
-					}
-				} else {
-					// 位于其他嵌套内
-					if (!empty($patternGroup['allowEnterFrom']) && in_array($currentNest, $patternGroup['allowEnterFrom'])) {
-						// 如果该标识允许包含在上一级嵌套内，则匹配开始标记，否则什么也不做
-						list($patternPos, $matchedText) = patternMatch($text, $pattern[$startOrSelfclosing], $pattern['isPcre']);
-						if ($patternPos !== false) {
-							$firstPosOfPatterns[$patternPos] = array(
-								'name' => $patternGroupName, 
-								'orderNo' => $orderNo, 
-								'startOrEnd' => $startOrSelfclosing, 
-								'matchedPattern' => $matchedText);
-						}
-					}
+				if ($matchedList['end'][0] !== false) {
+					$startOrEnd = 'end';	// 匹配到了结束标识
 				}
+			}
+
+			$actualStartOrEnd = $startOrEnd;	// 最终的标识开闭形式（区分开始标识和自关闭标识）
+			if ($startOrEnd == 'start') {
+				list($patternPos, $matchedText) = $matchedList['start'];
+				$actualStartOrEnd = $startOrSelfclosing;
+			} elseif ($startOrEnd == 'end') {
+				list($patternPos, $matchedText) = $matchedList['end'];
+			}
+
+			// ↓ 更新数组
+			if ($startOrEnd !== false) {
+				$firstPosOfPatterns[$patternPos] = array(
+					'name' => $patternGroupName, 
+					'orderNo' => $orderNo, 
+					'startOrEnd' => $actualStartOrEnd, 
+					'matchedPattern' => $matchedText);
 			}
 		}
 	}
@@ -605,30 +625,6 @@ function patternMatch($text, $pattern, $isPcre) {
 	return array(false, false);
 }
 
-/**
- * 检测是否处于嵌套外边
- */
-function outsideNestDetect($nestLevel) {
-	foreach ($nestLevel as $groupNestLevel) {
-		if (groupNestDetect($groupNestLevel) == true) {
-			return false;
-		}
-	}
-	return true;
-}
-
-/**
- * 检测是否在某个嵌套里面
- */
-function groupNestDetect($groupNestLevel){
-	foreach ($groupNestLevel as $eachNestLevel) {
-		if ($eachNestLevel > 0) {
-			return true;
-		}
-	}
-	return false;
-}
-
 function arrayKeyExists($key, $array) {
 	if (empty($array)) {
 		return false;
@@ -643,8 +639,8 @@ function arrayKeyExists($key, $array) {
  * tpltAndPfRenderer($rawText, $incomingArgs, &$pageStack)
  * 输出模板内容文本的渲染器 · Renderer of template text
  * 
- * @version	2.2.0, beta (------)
- * @since	2.2.0, beta (------)
+ * @version	2.2.0, beta (211130)
+ * @since	2.2.0, beta (211130)
  * 
  * @author	1. Vitalie Ciubotaru <vitalie@ciubotaru.tk>
  * 			2. Alloydome
@@ -682,8 +678,8 @@ function tpltAndPfRenderer($rawText, $incomingArgs, &$pageStack) {
  * pfRenderer($templateNameAndArgs, $incomingArgs, &$pageStack)
  * 输出解析器函数运行结果的渲染器 · Renderer of paresr functions
  * 
- * @version	2.2.0, beta (------)
- * @since	2.2.0, beta (------)
+ * @version	2.2.0, beta (211130)
+ * @since	2.2.0, beta (211130)
  * 
  * @author	Alloydome
  *
@@ -717,8 +713,8 @@ function pfRenderer($templateNameAndArgs, $incomingArgs, &$pageStack) {
  * tpltRenderer($templateNameAndArgs, $incomingArgs, &$pageStack)
  * 输出模板内容文本的渲染器 · Renderer of template text
  * 
- * @version	2.2.0, beta (------)
- * @since	2.2.0, beta (------)
+ * @version	2.2.0, beta (211130)
+ * @since	2.2.0, beta (211130)
  * 
  * @author	1. Vitalie Ciubotaru <vitalie@ciubotaru.tk>
  * 			2. Alloydome
@@ -817,8 +813,8 @@ function getTemplateNameAndArgs($match)
  * removeAltPatternInArgValue($str)
  * 将参数值中用于替代部分特殊符号的“~~...~~”再替换回来 · Restore the some spacial symbols replaced by "~~...~~" in argument values before
  * 
- * @version	2.2.0, beta (------)
- * @since	2.2.0, beta (------)
+ * @version	2.2.0, beta (211130)
+ * @since	2.2.0, beta (211130)
  * 
  * @author	Alloydome
  *
@@ -842,6 +838,10 @@ function removeAltPatternInArgValue($str) {
 			}
 			case 'spaceAlt':{
 				$instructions[$key]['text'] = ' ';
+				break;
+			}
+			case 'tildeAlt':{
+				$instructions[$key]['text'] = '~';
 				break;
 			}
 			case 'quoted' : {
