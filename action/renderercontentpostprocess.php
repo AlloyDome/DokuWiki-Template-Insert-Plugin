@@ -6,7 +6,7 @@
  * @author	AlloyDome
  * 
  * @since	2.1.0, beta (210706)
- * @version 2.1.0, beta (210706)
+ * @version 2.2.1, beta (------)
  */
 
 use dokuwiki\lib\plugins\tplt\inc as inc;
@@ -14,8 +14,8 @@ use dokuwiki\lib\plugins\tplt\inc as inc;
 if(!defined('DOKU_INC'))
 	die();	// 必须在 Dokuwiki 下运行 · Must be run within Dokuwiki
 
-require_once(DOKU_PLUGIN . 'tplt/inc/utils.php');
-require_once(DOKU_PLUGIN . 'tplt/inc/strposMap.php');
+require_once(DOKU_PLUGIN . 'tplt/inc/ParserUtils.php');
+require_once(DOKU_PLUGIN . 'tplt/inc/StrposMap.php');
 
 class action_plugin_tplt_renderercontentpostprocess extends DokuWiki_Action_Plugin {
 
@@ -48,7 +48,7 @@ class action_plugin_tplt_renderercontentpostprocess extends DokuWiki_Action_Plug
 	 * @param	mixed		$param	相关参数（暂时无用） · Parameters (useless now)
 	 */
 	public function sectionEditButtonCurrect(Doku_Event &$event, $param) {
-		$this->strposMap = inc\plugin_tplt_strposMap::$strposMap;
+		$this->strposMap = inc\StrposMap::$strposMap;
 
 		$format = $event->data[0];	// 输出类型（如 XHTML、元数据等等） · Output format (eg. XHTML, metadata etc.)
 		

@@ -6,7 +6,7 @@
  * @author	AlloyDome
  * 
  * @since	2.1.0, beta (210706)
- * @version 2.1.0, beta (210706)
+ * @version 2.2.1, beta (------)
  */
 
 use dokuwiki\lib\plugins\tplt\inc as inc;
@@ -14,9 +14,9 @@ use dokuwiki\lib\plugins\tplt\inc as inc;
 if(!defined('DOKU_INC'))
 	die();	// 必须在 Dokuwiki 下运行 · Must be run within Dokuwiki
 
-require_once(DOKU_PLUGIN . 'tplt/inc/utils.php');
-require_once(DOKU_PLUGIN . 'tplt/inc/strposMap.php');
-require_once(DOKU_PLUGIN . 'tplt/inc/pfList.php');
+require_once(DOKU_PLUGIN . 'tplt/inc/ParserUtils.php');
+require_once(DOKU_PLUGIN . 'tplt/inc/StrposMap.php');
+require_once(DOKU_PLUGIN . 'tplt/inc/PfList.php');
 
 class action_plugin_tplt_wikitextpreprocess extends DokuWiki_Action_Plugin {
 	// use inc\plugin_tplt_utils;	// 见 ../inc 文件夹内的 utils.php · see utils.php in ../inc folder
@@ -48,7 +48,7 @@ class action_plugin_tplt_wikitextpreprocess extends DokuWiki_Action_Plugin {
 	 */
 	public function tpltTextReplace(Doku_Event &$event, $param) {
 
-		inc\pfList::pfLoad();
+		inc\PfList::pfLoad();
 
 		$this->getConf('namespace');
 
@@ -56,9 +56,9 @@ class action_plugin_tplt_wikitextpreprocess extends DokuWiki_Action_Plugin {
 		$pageStack = array();	// 页面堆栈（注：根页面不应填入页面堆栈中）
 
 		$strposMap = false;
-		$text = inc\tpltMainHandler($text, array(), $pageStack, $strposMap);
+		$text = inc\ParserUtils::tpltMainHandler($text, array(), $pageStack, $strposMap);
 
-		inc\plugin_tplt_strposMap::$strposMap = $strposMap; // 存储字符位置映射表
+		inc\StrposMap::$strposMap = $strposMap; // 存储字符位置映射表
 
 		
 		$event->data = $text;
