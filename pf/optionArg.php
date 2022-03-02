@@ -6,7 +6,7 @@
  * @author	AlloyDome
  * 
  * @since	2.2.0, beta (211130)
- * @version 2.2.0, beta (211130)
+ * @version 2.2.1, beta (------)
  */
 
 use dokuwiki\lib\plugins\tplt\inc as inc;
@@ -14,7 +14,7 @@ use dokuwiki\lib\plugins\tplt\inc as inc;
 if(!defined('DOKU_INC'))
 	die();	// 必须在 Dokuwiki 下运行 · Must be run within Dokuwiki
 
-require_once(DOKU_PLUGIN . 'tplt/inc/utils.php');
+require_once(DOKU_PLUGIN . 'tplt/inc/ParserUtils.php');
 
 class tplt_parserfunc_optionArg {
 	public function renderer($pfArgs, $incomingArgs, &$pageStack) {
@@ -28,12 +28,12 @@ class tplt_parserfunc_optionArg {
 				}
 				if (in_array($pfArgs[1], $options))
 				{
-					return (array_key_exists(2, $pfArgs)) ? inc\tpltMainHandler($pfArgs[2], $incomingArgs, $pageStack) : '';
+					return (array_key_exists(2, $pfArgs)) ? inc\ParserUtils::tpltMainHandler($pfArgs[2], $incomingArgs, $pageStack) : '';
 				} else {
-					return (array_key_exists(3, $pfArgs)) ? inc\tpltMainHandler($pfArgs[3], $incomingArgs, $pageStack) : '';
+					return (array_key_exists(3, $pfArgs)) ? inc\ParserUtils::tpltMainHandler($pfArgs[3], $incomingArgs, $pageStack) : '';
 				}
 			} else {
-				return (array_key_exists(3, $pfArgs)) ? inc\tpltMainHandler($pfArgs[3], $incomingArgs, $pageStack) : '';
+				return (array_key_exists(3, $pfArgs)) ? inc\ParserUtils::tpltMainHandler($pfArgs[3], $incomingArgs, $pageStack) : '';
 			}
 		}
 	}
