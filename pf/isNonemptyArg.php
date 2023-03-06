@@ -15,7 +15,7 @@ if(!defined('DOKU_INC'))
 	die();	// 必须在 Dokuwiki 下运行 · Must be run within Dokuwiki
 
 class tplt_parserfunc_isNonemptyArg extends PfAbstract {
-	public function renderer(ParserUtils &$parser, $pfArgs, $incomingArgs,) {
+	public function renderer(ParserUtils &$parser, $pfArgs, $incomingArgs) {
 		if (!array_key_exists('1', $pfArgs)) {
 			return '';
 		} else {
