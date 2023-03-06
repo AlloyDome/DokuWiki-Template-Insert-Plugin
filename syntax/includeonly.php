@@ -3,8 +3,9 @@
  * DokuWiki Plugin tplt (Syntax Component)
  *
  * @license GPL 2 http://www.gnu.org/licenses/gpl-2.0.html
- * @author  1. Vitalie Ciubotaru <vitalie@ciubotaru.tk>
- * 			2. AlloyDome
+ * 
+ * @author  Vitalie Ciubotaru <vitalie@ciubotaru.tk>
+ * @author  AlloyDome
  */
 
 // must be run within Dokuwiki
@@ -43,11 +44,6 @@ class syntax_plugin_tplt_includeonly extends DokuWiki_Syntax_Plugin {
 //        $this->Lexer->addEntryPattern('\{\{[W|w][S|s][T|t]:(?=.*\}\})', $mode, 'plugin_wst');
     }
 
-/**
-    public function postConnect() {
-        $this->Lexer->addExitPattern('\}\}', 'plugin_wst');
-    }
-**/
     /**
      * Handle matches of the wst syntax
      *
