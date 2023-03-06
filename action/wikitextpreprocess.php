@@ -1,22 +1,23 @@
 <?php
 /**
- * DokuWiki tplt 插件（动作模块） · DokuWiki plugin tplt (action component)
+ * DokuWiki plugin tplt (action component, wiki text preprocess) · DokuWiki tplt 插件（动作模块，Wiki 代码预处理）
  *
  * @license	GPL 2 http://www.gnu.org/licenses/gpl-2.0.html
  * @author	AlloyDome
  * 
- * @since	2.1.0, beta (210706)
- * @version 2.1.0, beta (210706)
+ * @version 0.3.1 (2021-11-30)
+ * @since	0.2.0 (2021-7-6)
  */
 
-use dokuwiki\lib\plugins\tplt\inc as inc;
+use dokuwiki\lib\plugins\tplt\inc\{PfList, ParserUtils, StrposMap};
 
 if(!defined('DOKU_INC'))
 	die();	// 必须在 Dokuwiki 下运行 · Must be run within Dokuwiki
 
-require_once(DOKU_PLUGIN . 'tplt/inc/utils.php');
-require_once(DOKU_PLUGIN . 'tplt/inc/strposMap.php');
-require_once(DOKU_PLUGIN . 'tplt/inc/pfList.php');
+require_once(DOKU_PLUGIN . 'tplt/inc/ParserUtils.php');
+require_once(DOKU_PLUGIN . 'tplt/inc/StrposMap.php');
+require_once(DOKU_PLUGIN . 'tplt/inc/PfAbstract.php');
+require_once(DOKU_PLUGIN . 'tplt/inc/PfList.php');
 
 class action_plugin_tplt_wikitextpreprocess extends DokuWiki_Action_Plugin {
 	// use inc\plugin_tplt_utils;	// 见 ../inc 文件夹内的 utils.php · see utils.php in ../inc folder
@@ -36,8 +37,8 @@ class action_plugin_tplt_wikitextpreprocess extends DokuWiki_Action_Plugin {
 	 * tpltTextReplace(Doku_Event &$event, $param)
 	 * 将原始 Wiki 代码中的模板调用部分替换为模板本身内容 · Replace template calling in raw Wiki code by template contents 
 	 * 
-	 * @version	2.0.0, beta (210429)
-	 * @since	2.0.0, beta (210429)
+	 * @version	0.2.0 (2021-7-6)
+	 * @since	0.2.0 (2021-7-6)
 	 * 
 	 * @author	AlloyDome
 	 * 
@@ -47,20 +48,11 @@ class action_plugin_tplt_wikitextpreprocess extends DokuWiki_Action_Plugin {
 	 * @param	mixed		$param	相关参数（暂时无用） · Parameters (useless now)
 	 */
 	public function tpltTextReplace(Doku_Event &$event, $param) {
-
-		inc\pfList::pfLoad();
+		PfList::pfLoad();
 
 		$this->getConf('namespace');
-
 		$text = $event->data;	// 原始 Wiki 代码
-		$pageStack = array();	// 页面堆栈（注：根页面不应填入页面堆栈中）
-
-		$strposMap = false;
-		$text = inc\tpltMainHandler($text, array(), $pageStack, $strposMap);
-
-		inc\plugin_tplt_strposMap::$strposMap = $strposMap; // 存储字符位置映射表
-
-		
+		$text = (new ParserUtils())->tpltMainHandler($text, array());
 		$event->data = $text;
 	}
 } 
