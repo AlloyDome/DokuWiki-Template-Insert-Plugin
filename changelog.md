@@ -1,4 +1,13 @@
 # Version History · 版本记录
+## 0.4.1 (2023-3-7)
+*Mar 7, 2023 · 2023 年 3 月 7 日*
+
+* Fix a bug of section range mapping table exposure in XHTML (e.g. when the wiki text ends with a Listblock)
+
+---
+
+* 修复章节编辑范围对照表可能会被原样输出到 XHTML 的 bug（例如，当 wiki 代码以一个列表（Listblock）结束时会出现这个问题）
+
 ## 0.4.0 (2023-3-5)
 *Mar 5, 2023 · 2023 年 3 月 5 日*
 
