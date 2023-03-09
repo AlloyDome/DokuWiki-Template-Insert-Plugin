@@ -5,7 +5,7 @@
  * @license	GPL 2 http://www.gnu.org/licenses/gpl-2.0.html
  * @author	AlloyDome
  * 
- * @version 0.4.0 (2023-3-5)
+ * @version 0.4.1 (2023-3-7)
  * @since	0.2.0 (2021-7-6)
  */
 
@@ -37,7 +37,7 @@ class action_plugin_tplt_renderercontentpostprocess extends DokuWiki_Action_Plug
 	 * sectionEditButtonCurrect(Doku_Event &$event, $param)
 	 * 修正章节编辑按钮定位 · Correct the string range of section edit buttons 
 	 * 
-	 * @version	0.2.0 (2021-7-6)
+	 * @version	0.4.1 (2023-3-7)
 	 * @since	0.2.0 (2021-7-6)
 	 * 
 	 * @author	AlloyDome
@@ -59,6 +59,7 @@ class action_plugin_tplt_renderercontentpostprocess extends DokuWiki_Action_Plug
 			$xhtml = preg_replace("/&#127;<!-- STRPOSMAP\[.*?\] -->&#127;\n/", '', $xhtml);
 			$xhtml = preg_replace("/(\x7f|&#127;)/", '&nbsp;', $xhtml);
 			if (!array_key_exists(0, $matches)) {
+				$event->data[1] = $xhtml;	// Do not forget this!
 				return;
 			}
 			$strposMap = $matches[0];
