@@ -5,7 +5,7 @@
  * @license GPL 2 http://www.gnu.org/licenses/gpl-2.0.html
  * @author  AlloyDome
  * 
- * @version 0.4.0 (2023-3-5)
+ * @version 0.4.1 (2023-3-7)
  * @since	0.4.0 (2023-3-5)
  */
 
@@ -42,7 +42,7 @@ class syntax_plugin_tplt_strposMap extends DokuWiki_Syntax_Plugin {
 	 * @param string $mode Parser mode
 	 */
 	public function connectTo($mode) {
-		$this->Lexer->addSpecialPattern("\n\x7f~~STRPOSMAP~~\x7f\n.*?\n\x7f~~ENDSTRPOSMAP~~\x7f", $mode, 'plugin_tplt_strposMap');
+		$this->Lexer->addSpecialPattern("\n\x7f~~STRPOSMAP~~\x7f\n.*?\n\x7f~~ENDSTRPOSMAP~~\x7f\n", $mode, 'plugin_tplt_strposMap');
 	}
 
 	/**
@@ -57,7 +57,7 @@ class syntax_plugin_tplt_strposMap extends DokuWiki_Syntax_Plugin {
 	public function handle($match, $state, $pos, Doku_Handler $handler){
 		return substr($match, 
 			17, 	// \n\x7f~~STRPOSMAP~~\x7f\n
-			-19		// \n\x7f~~ENDSTRPOSMAP~~\x7f
+			-20		// \n\x7f~~ENDSTRPOSMAP~~\x7f\n
 		);
 	}
 
