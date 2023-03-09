@@ -5,7 +5,7 @@
  * @license	GPL 2 http://www.gnu.org/licenses/gpl-2.0.html
  * @author	AlloyDome
  * 
- * @version 0.4.0 (2023-3-5)
+ * @version 0.4.1 (2023-3-7)
  * @since	0.3.1 (2021-11-30)
  */
 
@@ -121,7 +121,7 @@ class ParserUtils {
 	 * tpltMainHandler($text)
 	 * Main handler · 主处理函数
 	 * 
-	 * @version	0.4.0 (2023-3-5)
+	 * @version	0.4.1 (2023-3-7)
 	 * @since	0.1.0 (2021-4-29)
 	 * 
 	 * @author	AlloyDome
@@ -169,7 +169,12 @@ class ParserUtils {
 		$expandedText = $this->tpltExpander($syntaxTree, $incomingArgs, $tokenLengths, $isRootPage);
 
 		if ($isRootPage) {
-			$expandedText .= "\n\x7f~~STRPOSMAP~~\x7f\n" . serialize($this->strposMap) . "\n\x7f~~ENDSTRPOSMAP~~\x7f";
+			// Note: To avoid range map exposure, there are 2 line breaks before "\x7f~~STRPOSMAP~~\x7f",
+			//       because some parser modes take "\n" as the exit pattern (e.g. Listblock) 
+			//  · 
+			// 注：“\x7f~~STRPOSMAP~~\x7f” 前面有两个换行符，是为了防止章节编辑范围对照表被原样输出到渲染结果中，
+			//     因为有些解析模式会以 “\n” 作为结束标记（例如 Listblock）
+			$expandedText .= "\n\n\x7f~~STRPOSMAP~~\x7f\n" . serialize($this->strposMap) . "\n\x7f~~ENDSTRPOSMAP~~\x7f\n";
 		}
 
 		return $expandedText;
